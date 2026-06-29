@@ -5,21 +5,21 @@ import { isToday, isYesterday, format, isSameDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ShoppingBag } from 'lucide-react';
 
-import AgentHeader from './AgentHeader';
-import ProductCard from './ProductCard';
-import MessageBubble from './MessageBubble';
-import DateSeparator from './DateSeparator';
-import MessageInput from './MessageInput';
+import AgentHeader     from './AgentHeader';
+import ProductCard     from './ProductCard';
+import MessageBubble   from './MessageBubble';
+import DateSeparator   from './DateSeparator';
+import MessageInput    from './MessageInput';
 import TypingIndicator from './TypingIndicator';
 
-import { pollMessages, sendMessage, startChat } from '@/lib/api';
+import { pollMessages, sendMessage, startChat, uploadFile } from '@/lib/api';
 import { clearSession, getSession, saveSession, updateLastId } from '@/lib/session';
 import type { Agent, ConversationStatus, Message, Product } from '@/lib/types';
 
 interface Props {
-  slug: string;
+  slug:           string;
   initialProduct: Product | null;
-  initialAgent: Agent | null;
+  initialAgent:   Agent | null;
 }
 
 function dateLabel(dateStr: string): string {
@@ -30,10 +30,11 @@ function dateLabel(dateStr: string): string {
 }
 
 export default function ChatWindow({ slug, initialProduct, initialAgent }: Props) {
-  const [product]       = useState<Product | null>(initialProduct);
+  const [product]    = useState<Product | null>(initialProduct);
   const [agent, setAgent] = useState<Agent | null>(initialAgent);
-  const [messages, setMessages]   = useState<Message[]>([]);
-  const [convStatus, setConvStatus] = useState<ConversationStatus>({
+
+  const [messages, setMessages]       = useState<Message[]>([]);
+  const [convStatus, setConvStatus]   = useState<ConversationStatus>({
     stage: 'greeting', status: 'active', ai_active: true,
   });
   const [sessionToken, setSessionToken] = useState<string | null>(null);
@@ -42,17 +43,16 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
   const [isStarting, setIsStarting]     = useState(true);
   const [error, setError]               = useState<string | null>(null);
 
-  const bottomRef   = useRef<HTMLDivElement>(null);
-  const lastSentRef = useRef<number>(0); // timestamp du dernier msg client envoyé
+  const bottomRef = useRef<HTMLDivElement>(null);
 
-  // ── Scroll to bottom ────────────────────────────────────────────────────────
+  // ── Scroll bas ───────────────────────────────────────────────────────────────
   const scrollToBottom = useCallback(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
 
-  useEffect(() => { scrollToBottom(); }, [messages, isTyping]);
+  useEffect(() => { scrollToBottom(); }, [messages, isTyping, scrollToBottom]);
 
-  // ── Démarrage session (clé = slug, indépendant du produit) ──────────────────
+  // ── Init session ──────────────────────────────────────────────────────────────
   useEffect(() => {
     async function init() {
       const existing = getSession(slug);
@@ -63,13 +63,10 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
           const data = await pollMessages(existing.token, 0);
           setMessages(data.messages);
           setConvStatus(data.conversation);
-          const maxId = data.messages.length
-            ? data.messages[data.messages.length - 1].id
-            : 0;
+          const maxId = data.messages.length ? data.messages[data.messages.length - 1].id : 0;
           setLastId(maxId);
           updateLastId(slug, maxId);
         } catch {
-          // Session expirée ou invalide — repartir de zéro
           clearSession(slug);
           await createNewSession();
         }
@@ -83,7 +80,7 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
       const res = await startChat(product?.id ?? null);
       setSessionToken(res.session_token);
       setAgent(res.agent);
-      const welcomeMsg: Message = {
+      const welcome: Message = {
         id:         res.welcome_message.id,
         direction:  'outbound',
         content:    res.welcome_message.content,
@@ -91,9 +88,9 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
         type:       'text',
         created_at: res.welcome_message.created_at,
       };
-      setMessages([welcomeMsg]);
-      setLastId(welcomeMsg.id);
-      saveSession(slug, res.session_token, welcomeMsg.id);
+      setMessages([welcome]);
+      setLastId(welcome.id);
+      saveSession(slug, res.session_token, welcome.id);
     }
 
     init().catch(() => {
@@ -103,7 +100,7 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
-  // ── Polling toutes les 2 secondes ────────────────────────────────────────────
+  // ── Polling 2s (pour multi-onglets et relances coordinateur) ─────────────────
   useEffect(() => {
     if (!sessionToken || convStatus.status === 'confirmed') return;
 
@@ -111,64 +108,94 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
       try {
         const data = await pollMessages(sessionToken, lastId);
         if (data.messages.length > 0) {
-          setMessages((prev) => [...prev, ...data.messages]);
+          setMessages((prev: Message[]) => [...prev, ...data.messages]);
           const maxId = data.messages[data.messages.length - 1].id;
           setLastId(maxId);
           updateLastId(slug, maxId);
-
-          // Si l'agent a répondu, couper le typing indicator
-          const hasAgentMsg = data.messages.some((m) => m.direction === 'outbound');
-          if (hasAgentMsg) setIsTyping(false);
+          const hasAgent = data.messages.some((m) => m.direction === 'outbound');
+          if (hasAgent) setIsTyping(false);
         }
         setConvStatus(data.conversation);
-      } catch {
-        // Erreur réseau silencieuse — réessaie au prochain tick
-      }
+      } catch { /* silencieux */ }
     };
 
     const interval = setInterval(poll, 2000);
     return () => clearInterval(interval);
   }, [sessionToken, lastId, convStatus.status, slug]);
 
-  // ── Afficher typing si l'agent ne répond pas depuis > 8s ────────────────────
-  useEffect(() => {
-    if (!isTyping) return;
-    const timeout = setTimeout(() => setIsTyping(false), 30_000);
-    return () => clearTimeout(timeout);
-  }, [isTyping]);
-
-  // ── Envoyer un message ───────────────────────────────────────────────────────
+  // ── Envoi message texte — réponse IA retournée directement ───────────────────
   const handleSend = useCallback(async (text: string) => {
     if (!sessionToken) return;
 
-    // Message optimiste (affiché immédiatement)
     const tempId  = -(Date.now());
     const tempMsg: Message = {
-      id:         tempId,
-      direction:  'inbound',
-      content:    text,
-      status:     'sent',
-      type:       'text',
-      created_at: new Date().toISOString(),
+      id: tempId, direction: 'inbound', content: text,
+      status: 'sent', type: 'text', created_at: new Date().toISOString(),
     };
+    setMessages((prev: Message[]) => [...prev, tempMsg]);
 
-    setMessages((prev) => [...prev, tempMsg]);
-    lastSentRef.current = Date.now();
+    if (convStatus.ai_active) setIsTyping(true);
 
     try {
-      await sendMessage(sessionToken, text);
-      if (convStatus.ai_active) setIsTyping(true);
+      const result = await sendMessage(sessionToken, text);
+
+      // Remplacer le message optimiste par le vrai ID
+      setMessages((prev: Message[]) =>
+        prev.map((m: Message) => m.id === tempId ? { ...m, id: result.id, status: 'delivered' } : m)
+      );
+      setLastId(result.id);
+
+      // Ajouter la réponse IA immédiatement (pas d'attente polling)
+      if (result.agent_message) {
+        setMessages((prev: Message[]) => [...prev, result.agent_message as Message]);
+        setLastId(result.agent_message.id);
+        updateLastId(slug, result.agent_message.id);
+        setIsTyping(false);
+      }
+
     } catch {
-      // Remplacer le message optimiste par une erreur
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === tempId ? { ...m, status: 'sent', content: m.content + ' ⚠️' } : m
+      setMessages((prev: Message[]) =>
+        prev.map((m: Message) =>
+          m.id === tempId ? { ...m, content: m.content + ' ⚠️' } : m
         )
       );
+      setIsTyping(false);
     }
-  }, [sessionToken, convStatus.ai_active]);
+  }, [sessionToken, convStatus.ai_active, slug]);
 
-  // ── Rendu conditionnel ───────────────────────────────────────────────────────
+  // ── Envoi fichier / photo / vocal ────────────────────────────────────────────
+  const handleUpload = useCallback(async (file: File | Blob, filename?: string) => {
+    if (!sessionToken) return;
+
+    try {
+      const res = await uploadFile(sessionToken, file, filename);
+
+      const mediaMsg: Message = {
+        id:         res.id,
+        direction:  'inbound',
+        content:    JSON.stringify({ url: res.url, name: res.name }),
+        status:     'delivered',
+        type:       res.type,
+        created_at: res.created_at,
+      };
+      setMessages((prev: Message[]) => [...prev, mediaMsg]);
+      setLastId(res.id);
+      updateLastId(slug, res.id);
+    } catch {
+      // Afficher un message d'erreur inline discret
+      const errMsg: Message = {
+        id:         -(Date.now()),
+        direction:  'inbound',
+        content:    '⚠️ Envoi du fichier échoué. Réessayez.',
+        status:     'sent',
+        type:       'text',
+        created_at: new Date().toISOString(),
+      };
+      setMessages((prev: Message[]) => [...prev, errMsg]);
+    }
+  }, [sessionToken, slug]);
+
+  // ── Rendu ─────────────────────────────────────────────────────────────────────
   if (isStarting) {
     return (
       <div className="h-dvh flex items-center justify-center bg-[#e5ddd5]">
@@ -196,30 +223,25 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
     );
   }
 
-  const isConfirmed = convStatus.status === 'confirmed' || convStatus.status === 'completed';
-  const displayAgent = agent ?? { name: 'Agent Daymond', avatar_url: null, support_phone: null };
+  const isConfirmed    = convStatus.status === 'confirmed' || convStatus.status === 'completed';
+  const displayAgent   = agent ?? { name: 'Agent Daymond', avatar_url: null, support_phone: null };
 
   return (
     <div className="h-dvh flex flex-col bg-[#e5ddd5] overflow-hidden">
-      {/* Header sticky */}
       <AgentHeader
         agent={displayAgent}
         isOnline={convStatus.ai_active && !isConfirmed}
         aiActive={convStatus.ai_active}
       />
 
-      {/* Carte produit — uniquement si un produit est lié */}
       {product && <ProductCard product={product} />}
 
-      {/* Zone messages */}
+      {/* Messages */}
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1 chat-bg">
-        {messages.map((msg, idx) => {
-          const prev = messages[idx - 1];
-          const showDate =
-            !prev || !isSameDay(new Date(msg.created_at), new Date(prev.created_at));
-          const showAvatar =
-            msg.direction === 'outbound' &&
-            (!prev || prev.direction !== 'outbound');
+        {messages.map((msg: Message, idx: number) => {
+          const prev       = messages[idx - 1];
+          const showDate   = !prev || !isSameDay(new Date(msg.created_at), new Date(prev.created_at));
+          const showAvatar = msg.direction === 'outbound' && (!prev || prev.direction !== 'outbound');
 
           return (
             <div key={msg.id}>
@@ -236,12 +258,11 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
 
         {isTyping && <TypingIndicator />}
 
-        {/* Bannière commande confirmée */}
         {isConfirmed && (
           <div className="flex justify-center my-4">
             <div className="bg-neo text-white text-sm px-5 py-3 rounded-2xl shadow-md flex items-center gap-2 max-w-xs text-center animate-slide-up">
               <ShoppingBag size={16} className="flex-shrink-0" />
-              <span>Commande confirmée ! Notre équipe vous contactera très bientôt.</span>
+              <span>Commande confirmée ! Notre équipe vous contactera très bientôt 🎉</span>
             </div>
           </div>
         )}
@@ -249,15 +270,11 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
         <div ref={bottomRef} />
       </div>
 
-      {/* Barre de saisie */}
       <MessageInput
-        onSend={handleSend}
+        onSendText={handleSend}
+        onSendFile={handleUpload}
         disabled={isConfirmed}
-        placeholder={
-          !convStatus.ai_active
-            ? 'Un conseiller va vous répondre…'
-            : 'Écrire un message…'
-        }
+        placeholder={!convStatus.ai_active ? 'Un conseiller va vous répondre…' : 'Écrire un message…'}
       />
     </div>
   );

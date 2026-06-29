@@ -16,12 +16,20 @@ export interface Agent {
   support_phone: string | null;
 }
 
+export type MessageType = 'text' | 'image' | 'audio' | 'video' | 'file';
+
+export interface MediaContent {
+  url: string;
+  name: string;
+  size?: number;
+}
+
 export interface Message {
   id: number;
   direction: 'inbound' | 'outbound';
-  content: string;
+  content: string; // texte ou JSON sérialisé pour les médias
   status: 'sent' | 'delivered' | 'read';
-  type: 'text';
+  type: MessageType;
   created_at: string;
 }
 

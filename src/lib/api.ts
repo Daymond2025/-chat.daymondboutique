@@ -6,9 +6,9 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
 });
 
-// ── Infos produit + agent (avant démarrage) ─────────────────────────────────
+// ── Infos produit + agent ────────────────────────────────────────────────────
 
-export async function fetchProduct(slug: string): Promise<{ product: Product; agent: Agent | null }> {
+export async function fetchProduct(slug: string): Promise<{ product: Product | null; agent: Agent | null }> {
   const { data } = await api.get(`/chat/product/${slug}`);
   return data;
 }
@@ -19,7 +19,7 @@ export interface StartResponse {
   session_token: string;
   welcome_message: { id: number; content: string; created_at: string };
   agent: Agent;
-  product: Product;
+  product: Product | null;
 }
 
 export async function startChat(productId?: number | null): Promise<StartResponse> {
@@ -27,14 +27,46 @@ export async function startChat(productId?: number | null): Promise<StartRespons
   return data;
 }
 
-// ── Envoyer un message ───────────────────────────────────────────────────────
+// ── Envoyer un message texte ─────────────────────────────────────────────────
 
-export async function sendMessage(token: string, message: string): Promise<{ id: number }> {
+export interface SendResponse {
+  id: number;
+  status: string;
+  agent_message: Message | null;
+}
+
+export async function sendMessage(token: string, message: string): Promise<SendResponse> {
   const { data } = await api.post(`/chat/${token}/message`, { message });
   return data;
 }
 
-// ── Polling — nouveaux messages depuis last_id ───────────────────────────────
+// ── Uploader un fichier (photo / audio / document) ───────────────────────────
+
+export interface UploadResponse {
+  id: number;
+  type: 'image' | 'audio' | 'video' | 'file';
+  url: string;
+  name: string;
+  direction: 'inbound';
+  status: 'delivered';
+  created_at: string;
+}
+
+export async function uploadFile(token: string, file: File | Blob, filename?: string): Promise<UploadResponse> {
+  const form = new FormData();
+  if (file instanceof Blob && !(file instanceof File)) {
+    form.append('file', file, filename ?? 'voice.webm');
+  } else {
+    form.append('file', file);
+  }
+  const { data } = await api.post(`/chat/${token}/upload`, form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 60000,
+  });
+  return data;
+}
+
+// ── Polling messages ─────────────────────────────────────────────────────────
 
 export interface PollResponse {
   messages: Message[];
