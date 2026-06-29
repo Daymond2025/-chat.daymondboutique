@@ -2,31 +2,31 @@ import type { ChatSession } from './types';
 
 const PREFIX = 'daymond_chat_';
 
-export function getSession(productId: number): ChatSession | null {
+export function getSession(key: string): ChatSession | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = localStorage.getItem(`${PREFIX}${productId}`);
+    const raw = localStorage.getItem(`${PREFIX}${key}`);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
 }
 
-export function saveSession(productId: number, token: string, lastMessageId: number): void {
+export function saveSession(key: string, token: string, lastMessageId: number): void {
   if (typeof window === 'undefined') return;
   localStorage.setItem(
-    `${PREFIX}${productId}`,
-    JSON.stringify({ token, lastMessageId, productId })
+    `${PREFIX}${key}`,
+    JSON.stringify({ token, lastMessageId, productId: 0 })
   );
 }
 
-export function updateLastId(productId: number, lastMessageId: number): void {
-  const session = getSession(productId);
+export function updateLastId(key: string, lastMessageId: number): void {
+  const session = getSession(key);
   if (!session) return;
-  saveSession(productId, session.token, lastMessageId);
+  saveSession(key, session.token, lastMessageId);
 }
 
-export function clearSession(productId: number): void {
+export function clearSession(key: string): void {
   if (typeof window === 'undefined') return;
-  localStorage.removeItem(`${PREFIX}${productId}`);
+  localStorage.removeItem(`${PREFIX}${key}`);
 }

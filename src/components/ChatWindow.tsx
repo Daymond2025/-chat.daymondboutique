@@ -18,7 +18,7 @@ import type { Agent, ConversationStatus, Message, Product } from '@/lib/types';
 
 interface Props {
   slug: string;
-  initialProduct: Product;
+  initialProduct: Product | null;
   initialAgent: Agent | null;
 }
 
@@ -30,7 +30,7 @@ function dateLabel(dateStr: string): string {
 }
 
 export default function ChatWindow({ slug, initialProduct, initialAgent }: Props) {
-  const [product]       = useState<Product>(initialProduct);
+  const [product]       = useState<Product | null>(initialProduct);
   const [agent, setAgent] = useState<Agent | null>(initialAgent);
   const [messages, setMessages]   = useState<Message[]>([]);
   const [convStatus, setConvStatus] = useState<ConversationStatus>({
@@ -52,13 +52,12 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
 
   useEffect(() => { scrollToBottom(); }, [messages, isTyping]);
 
-  // ── Démarrage session ────────────────────────────────────────────────────────
+  // ── Démarrage session (clé = slug, indépendant du produit) ──────────────────
   useEffect(() => {
     async function init() {
-      const existing = getSession(product.id);
+      const existing = getSession(slug);
 
       if (existing) {
-        // Session existante : charger les messages depuis le début
         setSessionToken(existing.token);
         try {
           const data = await pollMessages(existing.token, 0);
@@ -68,10 +67,10 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
             ? data.messages[data.messages.length - 1].id
             : 0;
           setLastId(maxId);
-          updateLastId(product.id, maxId);
+          updateLastId(slug, maxId);
         } catch {
           // Session expirée ou invalide — repartir de zéro
-          clearSession(product.id);
+          clearSession(slug);
           await createNewSession();
         }
       } else {
@@ -81,7 +80,7 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
     }
 
     async function createNewSession() {
-      const res = await startChat(product.id);
+      const res = await startChat(product?.id ?? null);
       setSessionToken(res.session_token);
       setAgent(res.agent);
       const welcomeMsg: Message = {
@@ -94,7 +93,7 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
       };
       setMessages([welcomeMsg]);
       setLastId(welcomeMsg.id);
-      saveSession(product.id, res.session_token, welcomeMsg.id);
+      saveSession(slug, res.session_token, welcomeMsg.id);
     }
 
     init().catch(() => {
@@ -102,7 +101,7 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
       setIsStarting(false);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product.id]);
+  }, [slug]);
 
   // ── Polling toutes les 2 secondes ────────────────────────────────────────────
   useEffect(() => {
@@ -115,7 +114,7 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
           setMessages((prev) => [...prev, ...data.messages]);
           const maxId = data.messages[data.messages.length - 1].id;
           setLastId(maxId);
-          updateLastId(product.id, maxId);
+          updateLastId(slug, maxId);
 
           // Si l'agent a répondu, couper le typing indicator
           const hasAgentMsg = data.messages.some((m) => m.direction === 'outbound');
@@ -129,7 +128,7 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
 
     const interval = setInterval(poll, 2000);
     return () => clearInterval(interval);
-  }, [sessionToken, lastId, convStatus.status, product.id]);
+  }, [sessionToken, lastId, convStatus.status, slug]);
 
   // ── Afficher typing si l'agent ne répond pas depuis > 8s ────────────────────
   useEffect(() => {
@@ -209,8 +208,8 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
         aiActive={convStatus.ai_active}
       />
 
-      {/* Carte produit */}
-      <ProductCard product={product} />
+      {/* Carte produit — uniquement si un produit est lié */}
+      {product && <ProductCard product={product} />}
 
       {/* Zone messages */}
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1 chat-bg">

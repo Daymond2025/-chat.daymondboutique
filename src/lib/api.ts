@@ -22,8 +22,8 @@ export interface StartResponse {
   product: Product;
 }
 
-export async function startChat(productId: number): Promise<StartResponse> {
-  const { data } = await api.post('/chat/start', { product_id: productId });
+export async function startChat(productId?: number | null): Promise<StartResponse> {
+  const { data } = await api.post('/chat/start', { product_id: productId ?? null });
   return data;
 }
 
