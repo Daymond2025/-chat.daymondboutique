@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Fond vert arrondi -->
+  <rect width="512" height="512" rx="110" fill="#4DB85C"/>
+  <!-- Bulle de chat blanche -->
+  <path d="M120 168 C120 145 139 128 162 128 L350 128 C373 128 392 145 392 168 L392 296 C392 319 373 336 350 336 L208 336 L152 388 L152 336 L162 336 C139 336 120 319 120 296 Z" fill="white"/>
+  <!-- 3 points verts -->
+  <circle cx="188" cy="232" r="18" fill="#4DB85C"/>
+  <circle cx="256" cy="232" r="18" fill="#4DB85C"/>
+  <circle cx="324" cy="232" r="18" fill="#4DB85C"/>
+</svg>

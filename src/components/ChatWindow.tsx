@@ -11,6 +11,7 @@ import MessageBubble   from './MessageBubble';
 import DateSeparator   from './DateSeparator';
 import MessageInput    from './MessageInput';
 import TypingIndicator from './TypingIndicator';
+import QuickReplies    from './QuickReplies';
 
 import { pollMessages, sendMessage, startChat, uploadFile } from '@/lib/api';
 import { clearSession, getSession, saveSession, updateLastId } from '@/lib/session';
@@ -42,6 +43,7 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
   const [isTyping, setIsTyping]         = useState(false);
   const [isStarting, setIsStarting]     = useState(true);
   const [error, setError]               = useState<string | null>(null);
+  const [quickReplies, setQuickReplies] = useState<string[]>([]);
 
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -127,6 +129,8 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
   const handleSend = useCallback(async (text: string) => {
     if (!sessionToken) return;
 
+    setQuickReplies([]); // Effacer les suggestions dès que le client écrit
+
     const tempId  = -(Date.now());
     const tempMsg: Message = {
       id: tempId, direction: 'inbound', content: text,
@@ -151,6 +155,10 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
         setLastId(result.agent_message.id);
         updateLastId(slug, result.agent_message.id);
         setIsTyping(false);
+        // Afficher les boutons de réponse rapide si l'IA en propose
+        if (result.agent_message.quick_replies?.length) {
+          setQuickReplies(result.agent_message.quick_replies);
+        }
       }
 
     } catch {
@@ -166,6 +174,7 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
   // ── Envoi fichier / photo / vocal ────────────────────────────────────────────
   const handleUpload = useCallback(async (file: File | Blob, filename?: string) => {
     if (!sessionToken) return;
+    setQuickReplies([]); // Effacer aussi si le client envoie un fichier
 
     try {
       const res = await uploadFile(sessionToken, file, filename);
@@ -269,6 +278,17 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
 
         <div ref={bottomRef} />
       </div>
+
+      {/* Boutons de réponse rapide — au-dessus de l'input */}
+      {!isConfirmed && quickReplies.length > 0 && (
+        <QuickReplies
+          replies={quickReplies}
+          onSelect={(text) => {
+            setQuickReplies([]);
+            handleSend(text);
+          }}
+        />
+      )}
 
       <MessageInput
         onSendText={handleSend}

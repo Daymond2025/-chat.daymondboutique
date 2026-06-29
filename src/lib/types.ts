@@ -31,6 +31,7 @@ export interface Message {
   status: 'sent' | 'delivered' | 'read';
   type: MessageType;
   created_at: string;
+  quick_replies?: string[];
 }
 
 export interface ConversationStatus {

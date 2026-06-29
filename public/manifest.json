@@ -1,0 +1,28 @@
+{
+  "name": "Daymond — Commandez en direct",
+  "short_name": "Daymond Chat",
+  "description": "Discutez avec un agent Daymond pour trouver et commander votre ordinateur idéal.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#e5ddd5",
+  "theme_color": "#2d5a3d",
+  "orientation": "portrait-primary",
+  "lang": "fr",
+  "categories": ["shopping", "business"],
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": []
+}
