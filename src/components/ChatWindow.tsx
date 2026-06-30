@@ -13,6 +13,7 @@ import MessageInput    from './MessageInput';
 import TypingIndicator from './TypingIndicator';
 import QuickReplies    from './QuickReplies';
 import ProductCatalog  from './ProductCatalog';
+import OrderRecapCard  from './OrderRecapCard';
 
 import { fetchCatalog, pollMessages, sendMessage, startChat, uploadFile } from '@/lib/api';
 import type { CatalogProduct } from '@/lib/api';
@@ -73,7 +74,12 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
           setConvStatus(data.conversation);
           const maxId = data.messages.length ? data.messages[data.messages.length - 1].id : 0;
           setLastId(maxId);
-          updateLastId(slug, maxId);
+          // Met à jour lastMessageId + métadonnées produit/agent si disponibles (fix avatar liste)
+          saveSession(slug, existing.token, maxId, {
+            productName:  product?.name     ?? undefined,
+            productImage: product?.image_url ?? undefined,
+            agentName:    existing.agentName ?? initialAgent?.name ?? undefined,
+          });
         } catch {
           clearSession(slug);
           await createNewSession();
@@ -158,12 +164,15 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
       setLastId(result.id);
 
       if (result.agent_message) {
-        setMessages((prev: Message[]) => [...prev, result.agent_message as Message]);
-        setLastId(result.agent_message.id);
-        updateLastId(slug, result.agent_message.id);
+        const agentMsg: Message = result.order_recap
+          ? { ...result.agent_message as Message, order_recap: result.order_recap }
+          : result.agent_message as Message;
+        setMessages((prev: Message[]) => [...prev, agentMsg]);
+        setLastId(agentMsg.id);
+        updateLastId(slug, agentMsg.id);
         setIsTyping(false);
-        if (result.agent_message.quick_replies?.length) {
-          setQuickReplies(result.agent_message.quick_replies);
+        if (!result.order_recap && agentMsg.quick_replies?.length) {
+          setQuickReplies(agentMsg.quick_replies);
         }
       }
 
@@ -277,6 +286,20 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
           const prev       = messages[idx - 1];
           const showDate   = !prev || !isSameDay(new Date(msg.created_at), new Date(prev.created_at));
           const showAvatar = msg.direction === 'outbound' && (!prev || prev.direction !== 'outbound');
+
+          if (msg.order_recap) {
+            return (
+              <div key={msg.id}>
+                {showDate && <DateSeparator label={dateLabel(msg.created_at)} />}
+                <OrderRecapCard
+                  recap={msg.order_recap}
+                  isConfirmed={isConfirmed}
+                  onConfirm={() => handleSend('JE CONFIRME ma commande')}
+                  onModify={() => handleSend('Je souhaite modifier ma commande')}
+                />
+              </div>
+            );
+          }
 
           return (
             <div key={msg.id}>

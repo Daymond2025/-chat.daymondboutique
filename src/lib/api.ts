@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Agent, ConversationStatus, Message, Product } from './types';
+import type { Agent, ConversationStatus, Message, OrderRecap, Product } from './types';
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
@@ -33,6 +33,7 @@ export interface SendResponse {
   id: number;
   status: string;
   agent_message: Message | null;
+  order_recap?: OrderRecap | null;
 }
 
 export async function sendMessage(token: string, message: string): Promise<SendResponse> {

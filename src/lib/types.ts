@@ -24,6 +24,22 @@ export interface MediaContent {
   size?: number;
 }
 
+export interface OrderRecap {
+  product_name: string;
+  product_image?: string | null;
+  price: string;
+  customer_name: string;
+  delivery_address: string;
+  phone: string;
+  delivery_date?: string;
+  delivery_fee: number;
+  tva: number;
+  remise: number;
+  total: string;
+  bonuses: string[];
+  currency: string;
+}
+
 export interface Message {
   id: number;
   direction: 'inbound' | 'outbound';
@@ -32,6 +48,7 @@ export interface Message {
   type: MessageType;
   created_at: string;
   quick_replies?: string[];
+  order_recap?: OrderRecap;
 }
 
 export interface ConversationStatus {
