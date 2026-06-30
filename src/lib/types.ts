@@ -41,7 +41,12 @@ export interface ConversationStatus {
 }
 
 export interface ChatSession {
-  token: string;
-  lastMessageId: number;
-  productId: number;
+  token:          string;
+  lastMessageId:  number;
+  slug:           string;
+  productName?:   string;
+  productImage?:  string | null;
+  agentName?:     string;
+  startedAt:      string;
+  lastMessageAt:  string;
 }

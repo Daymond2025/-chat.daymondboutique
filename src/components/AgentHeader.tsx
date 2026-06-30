@@ -1,25 +1,28 @@
 'use client';
 
-import { Phone, MoreVertical } from 'lucide-react';
+import { Phone, Store, MoreVertical } from 'lucide-react';
 import type { Agent } from '@/lib/types';
 
 interface Props {
-  agent:    Agent;
-  isOnline: boolean;
-  aiActive: boolean;
+  agent:          Agent;
+  isOnline:       boolean;
+  aiActive:       boolean;
+  productImage?:  string | null;
+  onOpenCatalog:  () => void;
 }
 
-export default function AgentHeader({ agent, isOnline, aiActive }: Props) {
-  const initials     = agent.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
-  const phoneNumber  = agent.support_phone ?? process.env.NEXT_PUBLIC_SUPPORT_PHONE ?? null;
+export default function AgentHeader({ agent, isOnline, aiActive, productImage, onOpenCatalog }: Props) {
+  const initials    = agent.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+  const phoneNumber = agent.support_phone ?? process.env.NEXT_PUBLIC_SUPPORT_PHONE ?? null;
+  const avatarSrc   = productImage ?? agent.avatar_url ?? null;
 
   return (
     <header className="bg-neo-darker text-white flex items-center gap-3 px-4 py-3 sticky top-0 z-20 shadow-md">
-      {/* Avatar */}
+      {/* Avatar — image produit prioritaire, puis avatar agent, puis initiales */}
       <div className="relative flex-shrink-0">
-        {agent.avatar_url ? (
+        {avatarSrc ? (
           <img
-            src={agent.avatar_url}
+            src={avatarSrc}
             alt={agent.name}
             className="w-10 h-10 rounded-full object-cover border-2 border-neo-light"
           />
@@ -45,13 +48,20 @@ export default function AgentHeader({ agent, isOnline, aiActive }: Props) {
 
       {/* Actions */}
       <div className="flex items-center gap-1">
-        {/* Bouton appel — toujours visible */}
+        {/* Boutique */}
+        <button
+          onClick={onOpenCatalog}
+          className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-neo-dark transition-colors"
+          title="Voir le catalogue"
+        >
+          <Store size={18} />
+        </button>
+
+        {/* Appel */}
         <a
           href={phoneNumber ? `tel:${phoneNumber}` : undefined}
           className={`w-9 h-9 flex items-center justify-center rounded-full transition-colors ${
-            phoneNumber
-              ? 'hover:bg-neo-dark cursor-pointer'
-              : 'opacity-40 cursor-not-allowed'
+            phoneNumber ? 'hover:bg-neo-dark cursor-pointer' : 'opacity-40 cursor-not-allowed'
           }`}
           title={phoneNumber ? `Appeler : ${phoneNumber}` : 'Numéro non configuré'}
           aria-disabled={!phoneNumber}

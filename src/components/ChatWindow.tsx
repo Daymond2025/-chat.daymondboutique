@@ -12,8 +12,10 @@ import DateSeparator   from './DateSeparator';
 import MessageInput    from './MessageInput';
 import TypingIndicator from './TypingIndicator';
 import QuickReplies    from './QuickReplies';
+import ProductCatalog  from './ProductCatalog';
 
-import { pollMessages, sendMessage, startChat, uploadFile } from '@/lib/api';
+import { fetchCatalog, pollMessages, sendMessage, startChat, uploadFile } from '@/lib/api';
+import type { CatalogProduct } from '@/lib/api';
 import { clearSession, getSession, saveSession, updateLastId } from '@/lib/session';
 import type { Agent, ConversationStatus, Message, Product } from '@/lib/types';
 
@@ -31,23 +33,26 @@ function dateLabel(dateStr: string): string {
 }
 
 export default function ChatWindow({ slug, initialProduct, initialAgent }: Props) {
-  const [product]    = useState<Product | null>(initialProduct);
-  const [agent, setAgent] = useState<Agent | null>(initialAgent);
+  const [product]          = useState<Product | null>(initialProduct);
+  const [agent, setAgent]  = useState<Agent | null>(initialAgent);
 
-  const [messages, setMessages]       = useState<Message[]>([]);
-  const [convStatus, setConvStatus]   = useState<ConversationStatus>({
+  const [messages, setMessages]             = useState<Message[]>([]);
+  const [convStatus, setConvStatus]         = useState<ConversationStatus>({
     stage: 'greeting', status: 'active', ai_active: true,
   });
-  const [sessionToken, setSessionToken] = useState<string | null>(null);
-  const [lastId, setLastId]             = useState(0);
-  const [isTyping, setIsTyping]         = useState(false);
-  const [isStarting, setIsStarting]     = useState(true);
-  const [error, setError]               = useState<string | null>(null);
-  const [quickReplies, setQuickReplies] = useState<string[]>([]);
+  const [sessionToken, setSessionToken]     = useState<string | null>(null);
+  const [lastId, setLastId]                 = useState(0);
+  const [isTyping, setIsTyping]             = useState(false);
+  const [isStarting, setIsStarting]         = useState(true);
+  const [error, setError]                   = useState<string | null>(null);
+  const [quickReplies, setQuickReplies]     = useState<string[]>([]);
+  const [catalogOpen, setCatalogOpen]       = useState(false);
+  const [catalogProducts, setCatalogProducts] = useState<CatalogProduct[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(false);
 
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const bottomRef       = useRef<HTMLDivElement>(null);
+  const sessionTokenRef = useRef<string | null>(null);
 
-  // ── Scroll bas ───────────────────────────────────────────────────────────────
   const scrollToBottom = useCallback(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
@@ -61,6 +66,7 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
 
       if (existing) {
         setSessionToken(existing.token);
+        sessionTokenRef.current = existing.token;
         try {
           const data = await pollMessages(existing.token, 0);
           setMessages(data.messages);
@@ -81,6 +87,7 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
     async function createNewSession() {
       const res = await startChat(product?.id ?? null);
       setSessionToken(res.session_token);
+      sessionTokenRef.current = res.session_token;
       setAgent(res.agent);
       const welcome: Message = {
         id:         res.welcome_message.id,
@@ -92,7 +99,11 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
       };
       setMessages([welcome]);
       setLastId(welcome.id);
-      saveSession(slug, res.session_token, welcome.id);
+      saveSession(slug, res.session_token, welcome.id, {
+        productName:  product?.name ?? undefined,
+        productImage: product?.image_url ?? undefined,
+        agentName:    res.agent.name,
+      });
     }
 
     init().catch(() => {
@@ -102,9 +113,9 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
-  // ── Polling 2s (pour multi-onglets et relances coordinateur) ─────────────────
+  // ── Polling 2s ───────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!sessionToken || convStatus.status === 'confirmed') return;
+    if (!sessionToken) return;
 
     const poll = async () => {
       try {
@@ -114,8 +125,7 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
           const maxId = data.messages[data.messages.length - 1].id;
           setLastId(maxId);
           updateLastId(slug, maxId);
-          const hasAgent = data.messages.some((m) => m.direction === 'outbound');
-          if (hasAgent) setIsTyping(false);
+          if (data.messages.some((m) => m.direction === 'outbound')) setIsTyping(false);
         }
         setConvStatus(data.conversation);
       } catch { /* silencieux */ }
@@ -123,13 +133,12 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
 
     const interval = setInterval(poll, 2000);
     return () => clearInterval(interval);
-  }, [sessionToken, lastId, convStatus.status, slug]);
+  }, [sessionToken, lastId, slug]);
 
-  // ── Envoi message texte — réponse IA retournée directement ───────────────────
+  // ── Envoi message texte ───────────────────────────────────────────────────────
   const handleSend = useCallback(async (text: string) => {
     if (!sessionToken) return;
-
-    setQuickReplies([]); // Effacer les suggestions dès que le client écrit
+    setQuickReplies([]);
 
     const tempId  = -(Date.now());
     const tempMsg: Message = {
@@ -143,19 +152,16 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
     try {
       const result = await sendMessage(sessionToken, text);
 
-      // Remplacer le message optimiste par le vrai ID
       setMessages((prev: Message[]) =>
         prev.map((m: Message) => m.id === tempId ? { ...m, id: result.id, status: 'delivered' } : m)
       );
       setLastId(result.id);
 
-      // Ajouter la réponse IA immédiatement (pas d'attente polling)
       if (result.agent_message) {
         setMessages((prev: Message[]) => [...prev, result.agent_message as Message]);
         setLastId(result.agent_message.id);
         updateLastId(slug, result.agent_message.id);
         setIsTyping(false);
-        // Afficher les boutons de réponse rapide si l'IA en propose
         if (result.agent_message.quick_replies?.length) {
           setQuickReplies(result.agent_message.quick_replies);
         }
@@ -164,17 +170,36 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
     } catch {
       setMessages((prev: Message[]) =>
         prev.map((m: Message) =>
-          m.id === tempId ? { ...m, content: m.content + ' ⚠️' } : m
+          m.id === tempId ? { ...m, content: m.content + ' (non envoyé)' } : m
         )
       );
       setIsTyping(false);
     }
   }, [sessionToken, convStatus.ai_active, slug]);
 
+  // ── Sélection produit depuis le catalogue ─────────────────────────────────────
+  const handleSelectProduct = useCallback((name: string) => {
+    handleSend(`Je suis intéressé par le ${name}`);
+  }, [handleSend]);
+
+  // ── Ouvrir le catalogue ───────────────────────────────────────────────────────
+  const handleOpenCatalog = useCallback(async () => {
+    setCatalogOpen(true);
+    if (catalogProducts.length > 0) return;
+    const token = sessionTokenRef.current;
+    if (!token) return;
+    setCatalogLoading(true);
+    try {
+      const products = await fetchCatalog(token);
+      setCatalogProducts(products);
+    } catch { /* silencieux */ }
+    finally { setCatalogLoading(false); }
+  }, [catalogProducts.length]);
+
   // ── Envoi fichier / photo / vocal ────────────────────────────────────────────
   const handleUpload = useCallback(async (file: File | Blob, filename?: string) => {
     if (!sessionToken) return;
-    setQuickReplies([]); // Effacer aussi si le client envoie un fichier
+    setQuickReplies([]);
 
     try {
       const res = await uploadFile(sessionToken, file, filename);
@@ -191,11 +216,10 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
       setLastId(res.id);
       updateLastId(slug, res.id);
     } catch {
-      // Afficher un message d'erreur inline discret
       const errMsg: Message = {
         id:         -(Date.now()),
         direction:  'inbound',
-        content:    '⚠️ Envoi du fichier échoué. Réessayez.',
+        content:    'Envoi du fichier échoué. Veuillez réessayer.',
         status:     'sent',
         type:       'text',
         created_at: new Date().toISOString(),
@@ -232,15 +256,17 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
     );
   }
 
-  const isConfirmed    = convStatus.status === 'confirmed' || convStatus.status === 'completed';
-  const displayAgent   = agent ?? { name: 'Agent Daymond', avatar_url: null, support_phone: null };
+  const isConfirmed  = convStatus.status === 'confirmed' || convStatus.status === 'completed';
+  const displayAgent = agent ?? { name: 'Agent Daymond', avatar_url: null, support_phone: null };
 
   return (
     <div className="h-dvh flex flex-col bg-[#e5ddd5] overflow-hidden">
       <AgentHeader
         agent={displayAgent}
-        isOnline={convStatus.ai_active && !isConfirmed}
+        isOnline={convStatus.ai_active}
         aiActive={convStatus.ai_active}
+        productImage={product?.image_url ?? null}
+        onOpenCatalog={handleOpenCatalog}
       />
 
       {product && <ProductCard product={product} />}
@@ -267,11 +293,12 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
 
         {isTyping && <TypingIndicator />}
 
+        {/* Banner commande confirmée — non bloquant, le chat reste ouvert */}
         {isConfirmed && (
           <div className="flex justify-center my-4">
             <div className="bg-neo text-white text-sm px-5 py-3 rounded-2xl shadow-md flex items-center gap-2 max-w-xs text-center animate-slide-up">
               <ShoppingBag size={16} className="flex-shrink-0" />
-              <span>Commande confirmée ! Notre équipe vous contactera très bientôt 🎉</span>
+              <span>Commande confirmée. Notre équipe vous contactera très bientôt.</span>
             </div>
           </div>
         )}
@@ -279,8 +306,8 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
         <div ref={bottomRef} />
       </div>
 
-      {/* Boutons de réponse rapide — au-dessus de l'input */}
-      {!isConfirmed && quickReplies.length > 0 && (
+      {/* Boutons de réponse rapide */}
+      {quickReplies.length > 0 && (
         <QuickReplies
           replies={quickReplies}
           onSelect={(text) => {
@@ -290,12 +317,29 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
         />
       )}
 
+      {/* Input — toujours actif même après confirmation */}
       <MessageInput
         onSendText={handleSend}
         onSendFile={handleUpload}
-        disabled={isConfirmed}
-        placeholder={!convStatus.ai_active ? 'Un conseiller va vous répondre…' : 'Écrire un message…'}
+        disabled={false}
+        placeholder={
+          isConfirmed
+            ? 'Poser une question sur votre commande…'
+            : !convStatus.ai_active
+            ? 'Un conseiller va vous répondre…'
+            : 'Ecrire un message…'
+        }
       />
+
+      {/* Catalogue boutique */}
+      {catalogOpen && (
+        <ProductCatalog
+          products={catalogProducts}
+          loading={catalogLoading}
+          onSelectProduct={handleSelectProduct}
+          onClose={() => setCatalogOpen(false)}
+        />
+      )}
     </div>
   );
 }

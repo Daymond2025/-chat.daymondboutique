@@ -66,6 +66,23 @@ export async function uploadFile(token: string, file: File | Blob, filename?: st
   return data;
 }
 
+// ── Catalogue produits agent (boutique in-chat) ──────────────────────────────
+
+export interface CatalogProduct {
+  id:         number;
+  name:       string;
+  brand:      string;
+  price:      string;
+  sale_price: string | null;
+  image_url:  string | null;
+  slug:       string;
+}
+
+export async function fetchCatalog(token: string): Promise<CatalogProduct[]> {
+  const { data } = await api.get(`/chat/${token}/catalog`);
+  return data.products ?? [];
+}
+
 // ── Polling messages ─────────────────────────────────────────────────────────
 
 export interface PollResponse {

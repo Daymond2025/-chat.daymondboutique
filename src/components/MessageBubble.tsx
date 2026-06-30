@@ -10,7 +10,13 @@ interface Props {
   showAvatar:  boolean;
 }
 
-// Parse le contenu : JSON pour les médias, texte brut sinon
+// Résoudre les URLs relatives depuis le stockage backend
+function resolveUrl(url: string): string {
+  if (!url || url.startsWith('http')) return url;
+  const base = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/api\/?$/, '');
+  return base + url;
+}
+
 function parseContent(content: string): { isMedia: boolean; media?: MediaContent; text?: string } {
   try {
     const parsed = JSON.parse(content);
@@ -19,7 +25,6 @@ function parseContent(content: string): { isMedia: boolean; media?: MediaContent
   return { isMedia: false, text: content };
 }
 
-// Formatage texte : *gras* et retours à la ligne
 function formatText(text: string) {
   return text.split(/(\*[^*]+\*)/g).map((part, i) => {
     if (part.startsWith('*') && part.endsWith('*')) {
@@ -34,16 +39,16 @@ function formatText(text: string) {
   });
 }
 
-// Contenu selon le type de message
-function MessageContent({ message, isOutbound }: { message: Message; isOutbound: boolean }) {
+function MessageContent({ message, isInbound }: { message: Message; isInbound: boolean }) {
   const { isMedia, media, text } = parseContent(message.content);
-  const textColor = isOutbound ? 'text-white' : 'text-gray-800';
 
   if (isMedia && media) {
+    const src = resolveUrl(media.url);
+
     if (message.type === 'image') {
       return (
         <img
-          src={media.url}
+          src={src}
           alt={media.name ?? 'Image'}
           className="rounded-xl max-w-full max-h-60 object-cover"
           loading="lazy"
@@ -54,26 +59,25 @@ function MessageContent({ message, isOutbound }: { message: Message; isOutbound:
     if (message.type === 'audio') {
       return (
         <div className="flex flex-col gap-1">
-          <audio controls src={media.url} className="h-10 w-full min-w-[200px]" />
+          <audio controls src={src} className="h-10 w-full min-w-[200px]" />
         </div>
       );
     }
 
-    // Fichier générique
     return (
       <a
-        href={media.url}
+        href={src}
         download={media.name}
         target="_blank"
         rel="noreferrer"
-        className={`flex items-center gap-2 ${isOutbound ? 'text-white' : 'text-neo-dark'}`}
+        className={`flex items-center gap-2 ${isInbound ? 'text-neo-darker' : 'text-neo-dark'}`}
       >
-        <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${isOutbound ? 'bg-white/20' : 'bg-neo-bg'}`}>
+        <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${isInbound ? 'bg-neo-border' : 'bg-neo-bg'}`}>
           <FileText size={18} />
         </div>
         <div className="min-w-0">
           <p className="text-xs font-medium truncate max-w-[180px]">{media.name}</p>
-          <p className={`text-[10px] ${isOutbound ? 'text-neo-bg' : 'text-gray-400'}`}>
+          <p className="text-[10px] text-gray-400">
             {media.size ? `${(media.size / 1024).toFixed(0)} Ko` : 'Fichier'}
           </p>
         </div>
@@ -83,7 +87,7 @@ function MessageContent({ message, isOutbound }: { message: Message; isOutbound:
   }
 
   return (
-    <p className={`text-sm leading-relaxed ${textColor}`}>
+    <p className={`text-sm leading-relaxed ${isInbound ? 'text-neo-darker' : 'text-gray-800'}`}>
       {formatText(text ?? '')}
     </p>
   );
@@ -91,6 +95,7 @@ function MessageContent({ message, isOutbound }: { message: Message; isOutbound:
 
 export default function MessageBubble({ message, agentName, agentAvatar, showAvatar }: Props) {
   const isOutbound = message.direction === 'outbound';
+  const isInbound  = !isOutbound;
   const time       = format(new Date(message.created_at), 'HH:mm', { locale: fr });
   const initials   = agentName.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
 
@@ -115,7 +120,7 @@ export default function MessageBubble({ message, agentName, agentAvatar, showAva
             <span className="text-xs text-neo-dark font-semibold ml-1">{agentName}</span>
           )}
           <div className="bg-white rounded-2xl rounded-tl-sm px-3 py-2 shadow-sm max-w-full">
-            <MessageContent message={message} isOutbound={false} />
+            <MessageContent message={message} isInbound={false} />
             <span className="text-[10px] text-gray-400 mt-1 block text-right">{time}</span>
           </div>
         </div>
@@ -123,17 +128,17 @@ export default function MessageBubble({ message, agentName, agentAvatar, showAva
     );
   }
 
-  // ── Bulle client — droite, neo green ────────────────────────────────────────
+  // ── Bulle client — droite, vert clair style WhatsApp ────────────────────────
   return (
     <div className="flex items-end gap-1 max-w-[80%] ml-auto animate-slide-up">
-      <div className="bg-neo rounded-2xl rounded-tr-sm px-3 py-2 shadow-sm">
-        <MessageContent message={message} isOutbound={true} />
+      <div className="bg-neo-bg border border-neo-border rounded-2xl rounded-tr-sm px-3 py-2 shadow-sm">
+        <MessageContent message={message} isInbound={true} />
         <div className="flex items-center justify-end gap-1 mt-1">
-          <span className="text-[10px] text-neo-bg">{time}</span>
+          <span className="text-[10px] text-neo-dark opacity-60">{time}</span>
           {message.status === 'delivered' || message.status === 'read' ? (
-            <CheckCheck size={12} className="text-neo-bg" />
+            <CheckCheck size={12} className="text-neo-dark opacity-60" />
           ) : (
-            <Check size={12} className="text-neo-bg opacity-70" />
+            <Check size={12} className="text-neo-dark opacity-40" />
           )}
         </div>
       </div>

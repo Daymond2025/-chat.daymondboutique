@@ -62,8 +62,8 @@ export default function MessageInput({ onSendText, onSendFile, disabled, placeho
   };
 
   // ── Vocal ────────────────────────────────────────────────────────────────────
-  const handleVoiceSend = (blob: Blob) => {
-    onSendFile(blob, `vocal_${Date.now()}.webm`);
+  const handleVoiceSend = (blob: Blob, filename: string) => {
+    onSendFile(blob, filename);
     setShowVoice(false);
   };
 
