@@ -55,14 +55,27 @@ export function clearSession(slug: string): void {
 export function getAllSessions(): ChatSession[] {
   if (typeof window === 'undefined') return [];
   const sessions: ChatSession[] = [];
+  const fallback = new Date(0).toISOString();
+
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (!key?.startsWith(PREFIX)) continue;
     try {
       const raw = localStorage.getItem(key);
-      if (raw) sessions.push(JSON.parse(raw));
-    } catch { /* skip invalid */ }
+      if (!raw) continue;
+      const data = JSON.parse(raw);
+      if (!data.token) continue;
+      // Compatibilité anciennes sessions sans date
+      if (!data.lastMessageAt || isNaN(new Date(data.lastMessageAt).getTime())) {
+        data.lastMessageAt = data.startedAt ?? fallback;
+      }
+      if (!data.startedAt || isNaN(new Date(data.startedAt).getTime())) {
+        data.startedAt = data.lastMessageAt ?? fallback;
+      }
+      sessions.push(data as ChatSession);
+    } catch { /* session corrompue — ignorer */ }
   }
+
   return sessions.sort(
     (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
   );

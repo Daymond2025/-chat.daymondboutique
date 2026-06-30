@@ -17,7 +17,7 @@ export default function AgentHeader({ agent, isOnline, aiActive, productImage, o
   const avatarSrc   = productImage ?? agent.avatar_url ?? null;
 
   return (
-    <header className="bg-neo-darker text-white flex items-center gap-3 px-4 py-3 sticky top-0 z-20 shadow-md">
+    <header className="bg-neo-header text-white flex items-center gap-3 px-4 py-3 sticky top-0 z-20 shadow-md">
       {/* Avatar — image produit prioritaire, puis avatar agent, puis initiales */}
       <div className="relative flex-shrink-0">
         {avatarSrc ? (
@@ -32,7 +32,7 @@ export default function AgentHeader({ agent, isOnline, aiActive, productImage, o
           </div>
         )}
         <span
-          className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-neo-darker ${
+          className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-neo-header ${
             isOnline ? 'bg-green-400' : 'bg-gray-400'
           }`}
         />

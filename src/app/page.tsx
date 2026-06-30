@@ -8,6 +8,17 @@ import { MessageSquare, Plus, ShoppingBag } from 'lucide-react';
 import { getAllSessions } from '@/lib/session';
 import type { ChatSession } from '@/lib/types';
 
+function safeFormatDistance(dateStr?: string): string {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  try {
+    return formatDistanceToNow(d, { addSuffix: true, locale: fr });
+  } catch {
+    return '';
+  }
+}
+
 export default function ConversationListPage() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
 
@@ -19,7 +30,7 @@ export default function ConversationListPage() {
     <div className="h-dvh flex flex-col bg-white">
 
       {/* Header style WhatsApp */}
-      <header className="bg-neo-darker text-white px-4 pt-10 pb-3 flex items-center justify-between">
+      <header className="bg-neo-header text-white px-4 pt-10 pb-3 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold tracking-tight">Daymond</h1>
           <p className="text-xs text-neo-light opacity-80">Agent Commercial</p>
@@ -72,7 +83,7 @@ export default function ConversationListPage() {
                     {s.productName ?? s.agentName ?? 'Daymond'}
                   </p>
                   <span className="text-[10px] text-gray-400 flex-shrink-0">
-                    {formatDistanceToNow(new Date(s.lastMessageAt), { addSuffix: true, locale: fr })}
+                    {safeFormatDistance(s.lastMessageAt)}
                   </span>
                 </div>
                 <p className="text-xs text-gray-400 truncate mt-0.5">
