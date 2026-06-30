@@ -4,9 +4,23 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { MessageSquare, Plus, ShoppingBag } from 'lucide-react';
+import { MessageSquare, Plus } from 'lucide-react';
 import { getAllSessions } from '@/lib/session';
 import type { ChatSession } from '@/lib/types';
+
+const AVATAR_COLORS = [
+  'bg-neo',          // vert Daymond
+  'bg-emerald-600',
+  'bg-teal-600',
+  'bg-cyan-600',
+  'bg-blue-600',
+  'bg-violet-600',
+];
+
+function avatarColor(name?: string): string {
+  const idx = (name?.charCodeAt(0) ?? 0) % AVATAR_COLORS.length;
+  return AVATAR_COLORS[idx];
+}
 
 function safeFormatDistance(dateStr?: string): string {
   if (!dateStr) return '';
@@ -35,8 +49,8 @@ export default function ConversationListPage() {
           <h1 className="text-xl font-bold tracking-tight">Daymond</h1>
           <p className="text-xs text-neo-light opacity-80">Agent Commercial</p>
         </div>
-        <div className="w-9 h-9 rounded-full bg-neo flex items-center justify-center">
-          <ShoppingBag size={18} className="text-white" />
+        <div className="w-9 h-9 rounded-full bg-neo flex items-center justify-center font-bold text-white text-sm">
+          D
         </div>
       </header>
 
@@ -61,7 +75,7 @@ export default function ConversationListPage() {
               href={`/p/${s.slug}`}
               className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 active:bg-gray-100 transition-colors"
             >
-              {/* Avatar produit ou icône générique */}
+              {/* Avatar produit ou initiale colorée */}
               <div className="relative flex-shrink-0">
                 {s.productImage ? (
                   <img
@@ -70,8 +84,8 @@ export default function ConversationListPage() {
                     className="w-12 h-12 rounded-full object-cover border border-gray-100"
                   />
                 ) : (
-                  <div className="w-12 h-12 rounded-full bg-neo-bg flex items-center justify-center">
-                    <ShoppingBag size={22} className="text-neo" />
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg ${avatarColor(s.productName ?? s.agentName)}`}>
+                    {(s.productName ?? s.agentName ?? 'D').charAt(0).toUpperCase()}
                   </div>
                 )}
               </div>

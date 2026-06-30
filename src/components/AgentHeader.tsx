@@ -1,6 +1,7 @@
 'use client';
 
-import { Phone, Store, MoreVertical } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, Phone, Store, MoreVertical } from 'lucide-react';
 import type { Agent } from '@/lib/types';
 
 interface Props {
@@ -12,12 +13,22 @@ interface Props {
 }
 
 export default function AgentHeader({ agent, isOnline, aiActive, productImage, onOpenCatalog }: Props) {
+  const router      = useRouter();
   const initials    = agent.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
   const phoneNumber = agent.support_phone ?? process.env.NEXT_PUBLIC_SUPPORT_PHONE ?? null;
   const avatarSrc   = productImage ?? agent.avatar_url ?? null;
 
   return (
-    <header className="bg-neo-header text-white flex items-center gap-3 px-4 py-3 sticky top-0 z-20 shadow-md">
+    <header className="bg-neo-header text-white flex items-center gap-2 px-2 py-3 sticky top-0 z-20 shadow-md">
+      {/* Bouton retour */}
+      <button
+        onClick={() => router.push('/')}
+        className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-neo-dark transition-colors flex-shrink-0"
+        aria-label="Retour"
+      >
+        <ArrowLeft size={20} />
+      </button>
+
       {/* Avatar — image produit prioritaire, puis avatar agent, puis initiales */}
       <div className="relative flex-shrink-0">
         {avatarSrc ? (

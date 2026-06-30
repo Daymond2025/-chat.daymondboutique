@@ -34,6 +34,7 @@ export interface SendResponse {
   status: string;
   agent_message: Message | null;
   order_recap?: OrderRecap | null;
+  show_info_form?: boolean;
 }
 
 export async function sendMessage(token: string, message: string): Promise<SendResponse> {

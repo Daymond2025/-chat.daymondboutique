@@ -5,20 +5,21 @@ import { isToday, isYesterday, format, isSameDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ShoppingBag } from 'lucide-react';
 
-import AgentHeader     from './AgentHeader';
-import ProductCard     from './ProductCard';
-import MessageBubble   from './MessageBubble';
-import DateSeparator   from './DateSeparator';
-import MessageInput    from './MessageInput';
-import TypingIndicator from './TypingIndicator';
-import QuickReplies    from './QuickReplies';
-import ProductCatalog  from './ProductCatalog';
-import OrderRecapCard  from './OrderRecapCard';
+import AgentHeader       from './AgentHeader';
+import ProductCard       from './ProductCard';
+import MessageBubble     from './MessageBubble';
+import DateSeparator     from './DateSeparator';
+import MessageInput      from './MessageInput';
+import TypingIndicator   from './TypingIndicator';
+import QuickReplies      from './QuickReplies';
+import ProductCatalog    from './ProductCatalog';
+import OrderRecapCard    from './OrderRecapCard';
+import CustomerInfoModal from './CustomerInfoModal';
 
 import { fetchCatalog, pollMessages, sendMessage, startChat, uploadFile } from '@/lib/api';
 import type { CatalogProduct } from '@/lib/api';
 import { clearSession, getSession, saveSession, updateLastId } from '@/lib/session';
-import type { Agent, ConversationStatus, Message, Product } from '@/lib/types';
+import type { Agent, ConversationStatus, Message, OrderRecap, Product } from '@/lib/types';
 
 interface Props {
   slug:           string;
@@ -31,6 +32,19 @@ function dateLabel(dateStr: string): string {
   if (isToday(d))     return "Aujourd'hui";
   if (isYesterday(d)) return 'Hier';
   return format(d, 'd MMMM yyyy', { locale: fr });
+}
+
+// ── Recap persistance : encode base64 dans le contenu du message en DB ────────
+function parseRecapB64(content: string): { text: string; recap: OrderRecap | null } {
+  const match = content.match(/\[R64:([A-Za-z0-9+/=]+)\]/);
+  if (!match) return { text: content, recap: null };
+  try {
+    const recap = JSON.parse(atob(match[1])) as OrderRecap;
+    const text  = content.replace(/\n?\[R64:[A-Za-z0-9+/=]*\]/, '').trim();
+    return { text, recap };
+  } catch {
+    return { text: content.replace(/\n?\[R64:[A-Za-z0-9+/=]*\]/, '').trim(), recap: null };
+  }
 }
 
 export default function ChatWindow({ slug, initialProduct, initialAgent }: Props) {
@@ -50,6 +64,7 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
   const [catalogOpen, setCatalogOpen]       = useState(false);
   const [catalogProducts, setCatalogProducts] = useState<CatalogProduct[]>([]);
   const [catalogLoading, setCatalogLoading] = useState(false);
+  const [showInfoForm, setShowInfoForm]     = useState(false);
 
   const bottomRef       = useRef<HTMLDivElement>(null);
   const sessionTokenRef = useRef<string | null>(null);
@@ -127,7 +142,11 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
       try {
         const data = await pollMessages(sessionToken, lastId);
         if (data.messages.length > 0) {
-          setMessages((prev: Message[]) => [...prev, ...data.messages]);
+          setMessages((prev: Message[]) => {
+            const existingIds = new Set(prev.filter(m => m.id > 0).map(m => m.id));
+            const newMsgs = data.messages.filter(m => !existingIds.has(m.id));
+            return newMsgs.length ? [...prev, ...newMsgs] : prev;
+          });
           const maxId = data.messages[data.messages.length - 1].id;
           setLastId(maxId);
           updateLastId(slug, maxId);
@@ -158,16 +177,24 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
     try {
       const result = await sendMessage(sessionToken, text);
 
-      setMessages((prev: Message[]) =>
-        prev.map((m: Message) => m.id === tempId ? { ...m, id: result.id, status: 'delivered' } : m)
-      );
+      // Remplace tempMsg par le vrai id — ou le supprime si le polling l'a déjà ajouté
+      setMessages((prev: Message[]) => {
+        if (prev.some(m => m.id === result.id && m.id !== tempId)) {
+          return prev.filter(m => m.id !== tempId);
+        }
+        return prev.map(m => m.id === tempId ? { ...m, id: result.id, status: 'delivered' } : m);
+      });
       setLastId(result.id);
 
       if (result.agent_message) {
         const agentMsg: Message = result.order_recap
           ? { ...result.agent_message as Message, order_recap: result.order_recap }
           : result.agent_message as Message;
-        setMessages((prev: Message[]) => [...prev, agentMsg]);
+        // Ajoute l'agent message seulement s'il n'a pas déjà été ajouté par le polling
+        setMessages((prev: Message[]) => {
+          if (prev.some(m => m.id === agentMsg.id)) return prev;
+          return [...prev, agentMsg];
+        });
         setLastId(agentMsg.id);
         updateLastId(slug, agentMsg.id);
         setIsTyping(false);
@@ -175,6 +202,8 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
           setQuickReplies(agentMsg.quick_replies);
         }
       }
+
+      if (result.show_info_form) setShowInfoForm(true);
 
     } catch {
       setMessages((prev: Message[]) =>
@@ -287,12 +316,26 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
           const showDate   = !prev || !isSameDay(new Date(msg.created_at), new Date(prev.created_at));
           const showAvatar = msg.direction === 'outbound' && (!prev || prev.direction !== 'outbound');
 
-          if (msg.order_recap) {
+          // Détecte le recap depuis msg.order_recap (session courante) OU depuis le contenu (rechargement)
+          const { text: cleanContent, recap: parsedRecap } = msg.direction === 'outbound'
+            ? parseRecapB64(msg.content)
+            : { text: msg.content, recap: null };
+          const orderRecap = msg.order_recap ?? parsedRecap;
+
+          if (orderRecap) {
             return (
               <div key={msg.id}>
                 {showDate && <DateSeparator label={dateLabel(msg.created_at)} />}
+                {cleanContent && (
+                  <MessageBubble
+                    message={{ ...msg, content: cleanContent }}
+                    agentName={displayAgent.name}
+                    agentAvatar={displayAgent.avatar_url}
+                    showAvatar={showAvatar}
+                  />
+                )}
                 <OrderRecapCard
-                  recap={msg.order_recap}
+                  recap={orderRecap}
                   isConfirmed={isConfirmed}
                   onConfirm={() => handleSend('JE CONFIRME ma commande')}
                   onModify={() => handleSend('Je souhaite modifier ma commande')}
@@ -361,6 +404,14 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
           loading={catalogLoading}
           onSelectProduct={handleSelectProduct}
           onClose={() => setCatalogOpen(false)}
+        />
+      )}
+
+      {/* Modal collecte informations client */}
+      {showInfoForm && (
+        <CustomerInfoModal
+          onSubmit={(msg) => { setShowInfoForm(false); handleSend(msg); }}
+          onClose={() => setShowInfoForm(false)}
         />
       )}
     </div>
