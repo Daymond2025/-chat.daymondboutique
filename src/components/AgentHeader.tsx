@@ -19,23 +19,24 @@ export default function AgentHeader({ agent, isOnline, aiActive, productImage, o
   const avatarSrc   = productImage ?? agent.avatar_url ?? null;
 
   return (
-    <header className="bg-neo-header text-white flex items-center gap-2 px-2 py-3 sticky top-0 z-20 shadow-md">
+    <header className="bg-white text-gray-900 flex items-center gap-2 px-2 py-2.5 sticky top-0 z-20 shadow-sm border-b border-gray-100">
+
       {/* Bouton retour */}
       <button
         onClick={() => router.push('/')}
-        className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-neo-dark transition-colors flex-shrink-0"
+        className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors flex-shrink-0"
         aria-label="Retour"
       >
-        <ArrowLeft size={20} />
+        <ArrowLeft size={22} className="text-gray-700" />
       </button>
 
-      {/* Avatar — image produit prioritaire, puis avatar agent, puis initiales */}
+      {/* Avatar */}
       <div className="relative flex-shrink-0">
         {avatarSrc ? (
           <img
             src={avatarSrc}
             alt={agent.name}
-            className="w-10 h-10 rounded-full object-cover border-2 border-neo-light"
+            className="w-10 h-10 rounded-full object-cover"
           />
         ) : (
           <div className="w-10 h-10 rounded-full bg-neo flex items-center justify-center text-white font-bold text-sm">
@@ -43,46 +44,44 @@ export default function AgentHeader({ agent, isOnline, aiActive, productImage, o
           </div>
         )}
         <span
-          className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-neo-header ${
-            isOnline ? 'bg-green-400' : 'bg-gray-400'
+          className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
+            isOnline ? 'bg-green-400' : 'bg-gray-300'
           }`}
         />
       </div>
 
       {/* Nom + statut */}
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-sm leading-tight truncate">{agent.name}</p>
-        <p className="text-xs text-neo-light leading-tight">
+        <p className="font-semibold text-sm leading-tight truncate text-gray-900">{agent.name}</p>
+        <p className="text-xs leading-tight text-neo font-medium">
           {!aiActive ? 'Un conseiller va vous répondre…' : isOnline ? 'En ligne' : 'Agent Daymond'}
         </p>
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-1">
-        {/* Boutique */}
+      <div className="flex items-center gap-0.5">
         <button
           onClick={onOpenCatalog}
-          className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-neo-dark transition-colors"
+          className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
           title="Voir le catalogue"
         >
-          <Store size={18} />
+          <Store size={19} className="text-gray-600" />
         </button>
 
-        {/* Appel */}
         <a
           href={phoneNumber ? `tel:${phoneNumber}` : undefined}
           className={`w-9 h-9 flex items-center justify-center rounded-full transition-colors ${
-            phoneNumber ? 'hover:bg-neo-dark cursor-pointer' : 'opacity-40 cursor-not-allowed'
+            phoneNumber ? 'hover:bg-gray-100 cursor-pointer' : 'opacity-30 cursor-not-allowed'
           }`}
           title={phoneNumber ? `Appeler : ${phoneNumber}` : 'Numéro non configuré'}
           aria-disabled={!phoneNumber}
           onClick={(e) => { if (!phoneNumber) e.preventDefault(); }}
         >
-          <Phone size={18} />
+          <Phone size={19} className="text-gray-600" />
         </a>
 
-        <button className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-neo-dark transition-colors">
-          <MoreVertical size={18} />
+        <button className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
+          <MoreVertical size={19} className="text-gray-600" />
         </button>
       </div>
     </header>

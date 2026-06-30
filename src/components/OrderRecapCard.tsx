@@ -117,23 +117,26 @@ export default function OrderRecapCard({ recap, isConfirmed, onConfirm, onModify
         </div>
       </div>
 
-      {/* Boutons action */}
-      {!isConfirmed && (
-        <div className="flex gap-3 mt-3 px-1">
-          <button
-            onClick={onModify}
-            className="flex-1 py-3 rounded-full border-2 border-gray-300 text-gray-600 font-semibold text-sm hover:bg-gray-50 active:scale-95 transition-all"
-          >
-            Modifier
-          </button>
-          <button
-            onClick={onConfirm}
-            className="flex-1 py-3 rounded-full bg-neo text-white font-bold text-sm hover:bg-neo-dark active:scale-95 transition-all shadow-md uppercase tracking-wide"
-          >
-            Je Confirme
-          </button>
-        </div>
-      )}
+      {/* Boutons action — toujours visibles, adaptés selon statut */}
+      <div className="flex gap-3 mt-3 px-1">
+        <button
+          onClick={onModify}
+          className="flex-1 py-3 rounded-full border-2 border-gray-300 text-gray-600 font-semibold text-sm hover:bg-gray-50 active:scale-95 transition-all"
+        >
+          {isConfirmed ? 'Modifier ma commande' : 'Modifier'}
+        </button>
+        <button
+          onClick={isConfirmed ? undefined : onConfirm}
+          disabled={isConfirmed}
+          className={`flex-1 py-3 rounded-full font-bold text-sm transition-all shadow-md uppercase tracking-wide
+            ${isConfirmed
+              ? 'bg-green-100 text-green-700 cursor-default'
+              : 'bg-neo text-white hover:bg-neo-dark active:scale-95'
+            }`}
+        >
+          {isConfirmed ? 'Confirmée ✓' : 'Je Confirme'}
+        </button>
+      </div>
     </div>
   );
 }

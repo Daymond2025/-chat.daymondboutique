@@ -4,23 +4,9 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { MessageSquare, Plus } from 'lucide-react';
+import { MessageSquare, MessageSquarePlus, Search, MoreVertical } from 'lucide-react';
 import { getAllSessions } from '@/lib/session';
 import type { ChatSession } from '@/lib/types';
-
-const AVATAR_COLORS = [
-  'bg-neo',          // vert Daymond
-  'bg-emerald-600',
-  'bg-teal-600',
-  'bg-cyan-600',
-  'bg-blue-600',
-  'bg-violet-600',
-];
-
-function avatarColor(name?: string): string {
-  const idx = (name?.charCodeAt(0) ?? 0) % AVATAR_COLORS.length;
-  return AVATAR_COLORS[idx];
-}
 
 function safeFormatDistance(dateStr?: string): string {
   if (!dateStr) return '';
@@ -33,6 +19,20 @@ function safeFormatDistance(dateStr?: string): string {
   }
 }
 
+const AVATAR_COLORS = [
+  'bg-neo',
+  'bg-emerald-600',
+  'bg-teal-600',
+  'bg-cyan-600',
+  'bg-blue-600',
+  'bg-violet-600',
+];
+
+function avatarColor(name?: string): string {
+  const idx = (name?.charCodeAt(0) ?? 0) % AVATAR_COLORS.length;
+  return AVATAR_COLORS[idx];
+}
+
 export default function ConversationListPage() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
 
@@ -43,14 +43,19 @@ export default function ConversationListPage() {
   return (
     <div className="h-dvh flex flex-col bg-white">
 
-      {/* Header style WhatsApp */}
-      <header className="bg-neo-header text-white px-4 pt-10 pb-3 flex items-center justify-between">
+      {/* Header style WhatsApp blanc */}
+      <header className="bg-white px-4 pt-10 pb-3 flex items-center justify-between border-b border-gray-100 shadow-sm">
         <div>
-          <h1 className="text-xl font-bold tracking-tight">Daymond</h1>
-          <p className="text-xs text-neo-light opacity-80">Agent Commercial</p>
+          <h1 className="text-xl font-bold tracking-tight text-neo">Daymond</h1>
+          <p className="text-xs text-gray-500">Agent Commercial IA</p>
         </div>
-        <div className="w-9 h-9 rounded-full bg-neo flex items-center justify-center font-bold text-white text-sm">
-          D
+        <div className="flex items-center gap-1">
+          <button className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors">
+            <Search size={19} className="text-gray-600" />
+          </button>
+          <button className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors">
+            <MoreVertical size={19} className="text-gray-600" />
+          </button>
         </div>
       </header>
 
@@ -75,8 +80,8 @@ export default function ConversationListPage() {
               href={`/p/${s.slug}`}
               className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 active:bg-gray-100 transition-colors"
             >
-              {/* Avatar produit ou initiale colorée */}
-              <div className="relative flex-shrink-0">
+              {/* Avatar produit (image) ou initiale colorée */}
+              <div className="flex-shrink-0">
                 {s.productImage ? (
                   <img
                     src={s.productImage}
@@ -109,14 +114,14 @@ export default function ConversationListPage() {
         )}
       </div>
 
-      {/* FAB — nouvelle conversation */}
-      <div className="p-4 border-t border-gray-100 bg-white">
+      {/* FAB circulaire style WhatsApp */}
+      <div className="fixed bottom-6 right-5 z-10">
         <Link
           href="/p/general"
-          className="flex items-center justify-center gap-2 w-full bg-neo text-white font-semibold py-3.5 rounded-2xl shadow-md hover:bg-neo-dark active:scale-95 transition-all"
+          className="w-14 h-14 bg-neo text-white rounded-full flex items-center justify-center shadow-xl hover:bg-neo-dark active:scale-95 transition-all"
+          aria-label="Nouvelle conversation"
         >
-          <Plus size={20} />
-          Nouvelle conversation
+          <MessageSquarePlus size={26} />
         </Link>
       </div>
     </div>

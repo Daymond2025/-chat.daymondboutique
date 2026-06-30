@@ -197,6 +197,13 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
         });
         setLastId(agentMsg.id);
         updateLastId(slug, agentMsg.id);
+        // Sauvegarde l'image produit dans la session dès que le recap est détecté
+        if (result.order_recap?.product_image) {
+          saveSession(slug, sessionToken, agentMsg.id, {
+            productName:  result.order_recap.product_name ?? undefined,
+            productImage: result.order_recap.product_image,
+          });
+        }
         setIsTyping(false);
         if (!result.order_recap && agentMsg.quick_replies?.length) {
           setQuickReplies(agentMsg.quick_replies);
