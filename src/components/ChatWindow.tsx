@@ -13,8 +13,9 @@ import MessageInput      from './MessageInput';
 import TypingIndicator   from './TypingIndicator';
 import QuickReplies      from './QuickReplies';
 import ProductCatalog    from './ProductCatalog';
-import OrderRecapCard    from './OrderRecapCard';
-import CustomerInfoModal from './CustomerInfoModal';
+import OrderRecapCard      from './OrderRecapCard';
+import CustomerInfoModal   from './CustomerInfoModal';
+import ProductSuggestions  from './ProductSuggestions';
 
 import { fetchCatalog, pollMessages, sendMessage, startChat, uploadFile } from '@/lib/api';
 import type { CatalogProduct } from '@/lib/api';
@@ -187,9 +188,11 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
       setLastId(result.id);
 
       if (result.agent_message) {
-        const agentMsg: Message = result.order_recap
-          ? { ...result.agent_message as Message, order_recap: result.order_recap }
-          : result.agent_message as Message;
+        const agentMsg: Message = {
+          ...result.agent_message as Message,
+          ...(result.order_recap         ? { order_recap:         result.order_recap }         : {}),
+          ...(result.product_suggestions ? { product_suggestions: result.product_suggestions } : {}),
+        };
         // Ajoute l'agent message seulement s'il n'a pas déjà été ajouté par le polling
         setMessages((prev: Message[]) => {
           if (prev.some(m => m.id === agentMsg.id)) return prev;
@@ -211,6 +214,7 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
       }
 
       if (result.show_info_form) setShowInfoForm(true);
+      if (result.show_catalog)  handleOpenCatalog();
 
     } catch {
       setMessages((prev: Message[]) =>
@@ -360,6 +364,16 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
                 agentAvatar={displayAgent.avatar_url}
                 showAvatar={showAvatar}
               />
+              {/* Cartes produits suggérées inline sous le message agent */}
+              {msg.product_suggestions && msg.product_suggestions.length > 0 && (
+                <ProductSuggestions
+                  suggestions={msg.product_suggestions}
+                  onSelect={(name) => {
+                    setQuickReplies([]);
+                    handleSend(`Je suis intéressé par le ${name}`);
+                  }}
+                />
+              )}
             </div>
           );
         })}

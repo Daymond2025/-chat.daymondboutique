@@ -40,6 +40,16 @@ export interface OrderRecap {
   currency: string;
 }
 
+export interface ProductSuggestion {
+  id:         number;
+  name:       string;
+  brand:      string;
+  price:      string;
+  sale_price: string | null;
+  image_url:  string | null;
+  slug:       string;
+}
+
 export interface Message {
   id: number;
   direction: 'inbound' | 'outbound';
@@ -47,8 +57,9 @@ export interface Message {
   status: 'sent' | 'delivered' | 'read';
   type: MessageType;
   created_at: string;
-  quick_replies?: string[];
-  order_recap?: OrderRecap;
+  quick_replies?:      string[];
+  order_recap?:        OrderRecap;
+  product_suggestions?: ProductSuggestion[];
 }
 
 export interface ConversationStatus {

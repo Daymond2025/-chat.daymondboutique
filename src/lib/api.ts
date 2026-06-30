@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Agent, ConversationStatus, Message, OrderRecap, Product } from './types';
+import type { Agent, ConversationStatus, Message, OrderRecap, Product, ProductSuggestion } from './types';
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
@@ -32,9 +32,11 @@ export async function startChat(productId?: number | null): Promise<StartRespons
 export interface SendResponse {
   id: number;
   status: string;
-  agent_message: Message | null;
-  order_recap?: OrderRecap | null;
-  show_info_form?: boolean;
+  agent_message:       Message | null;
+  order_recap?:        OrderRecap | null;
+  show_info_form?:     boolean;
+  product_suggestions?: ProductSuggestion[] | null;
+  show_catalog?:       boolean;
 }
 
 export async function sendMessage(token: string, message: string): Promise<SendResponse> {
