@@ -47,7 +47,7 @@ export default function ConversationListPage() {
       <header className="bg-white px-4 pt-10 pb-3 flex items-center justify-between border-b border-gray-100 shadow-sm">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-neo">Daymond</h1>
-          <p className="text-xs text-gray-500">Agent Commercial IA</p>
+          <p className="text-xs text-gray-500">Agent Commercial</p>
         </div>
         <div className="flex items-center gap-1">
           <button className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors">
