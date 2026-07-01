@@ -54,6 +54,7 @@ export interface UploadResponse {
   direction: 'inbound';
   status: 'delivered';
   created_at: string;
+  agent_message: Message | null;
 }
 
 export async function uploadFile(token: string, file: File | Blob, filename?: string): Promise<UploadResponse> {

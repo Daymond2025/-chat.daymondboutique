@@ -250,6 +250,8 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
     if (!sessionToken) return;
     setQuickReplies([]);
 
+    if (convStatus.ai_active) setIsTyping(true);
+
     try {
       const res = await uploadFile(sessionToken, file, filename);
 
@@ -261,9 +263,24 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
         type:       res.type,
         created_at: res.created_at,
       };
-      setMessages((prev: Message[]) => [...prev, mediaMsg]);
-      setLastId(res.id);
-      updateLastId(slug, res.id);
+
+      const newMsgs: Message[] = [mediaMsg];
+      if (res.agent_message) {
+        newMsgs.push(res.agent_message as Message);
+      }
+
+      setMessages((prev: Message[]) => {
+        const existingIds = new Set(prev.filter(m => m.id > 0).map(m => m.id));
+        return [...prev, ...newMsgs.filter(m => !existingIds.has(m.id))];
+      });
+
+      const maxId = newMsgs[newMsgs.length - 1].id;
+      setLastId(maxId);
+      updateLastId(slug, maxId);
+
+      if ((res.agent_message as Message & { quick_replies?: string[] })?.quick_replies?.length) {
+        setQuickReplies((res.agent_message as Message & { quick_replies?: string[] }).quick_replies ?? []);
+      }
     } catch {
       const errMsg: Message = {
         id:         -(Date.now()),
@@ -274,8 +291,10 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
         created_at: new Date().toISOString(),
       };
       setMessages((prev: Message[]) => [...prev, errMsg]);
+    } finally {
+      setIsTyping(false);
     }
-  }, [sessionToken, slug]);
+  }, [sessionToken, slug, convStatus.ai_active]);
 
   // ── Rendu ─────────────────────────────────────────────────────────────────────
   if (isStarting) {

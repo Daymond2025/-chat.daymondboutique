@@ -1,7 +1,36 @@
+'use client';
+
+import { useState } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Check, CheckCheck, FileText, Download } from 'lucide-react';
 import type { Message, MediaContent } from '@/lib/types';
+
+function ImageWithFallback({ src, name }: { src: string; name?: string }) {
+  const [broken, setBroken] = useState(false);
+  if (broken) {
+    return (
+      <a
+        href={src}
+        target="_blank"
+        rel="noreferrer"
+        className="flex items-center gap-2 text-neo-dark text-sm underline"
+      >
+        <FileText size={16} className="flex-shrink-0" />
+        <span className="truncate max-w-[180px]">{name ?? 'Voir l\'image'}</span>
+      </a>
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt={name ?? 'Image'}
+      className="rounded-xl max-w-full max-h-60 object-cover"
+      loading="lazy"
+      onError={() => setBroken(true)}
+    />
+  );
+}
 
 interface Props {
   message:     Message;
@@ -59,12 +88,7 @@ function MessageContent({ message, isInbound }: { message: Message; isInbound: b
 
     if (effectiveType === 'image') {
       return (
-        <img
-          src={src}
-          alt={media.name ?? 'Image'}
-          className="rounded-xl max-w-full max-h-60 object-cover"
-          loading="lazy"
-        />
+        <ImageWithFallback src={src} name={media.name} />
       );
     }
 
