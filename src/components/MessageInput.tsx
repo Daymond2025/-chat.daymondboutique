@@ -4,6 +4,12 @@ import { useRef, useState, KeyboardEvent } from 'react';
 import { Send, Mic, Paperclip, Camera, FileText, X, Smile } from 'lucide-react';
 import VoiceRecorder from './VoiceRecorder';
 
+const EMOJIS = [
+  '😊','😂','🥰','😍','😎','🤔','😉','🙏',
+  '👍','👏','💪','🤝','❤️','🔥','✅','🎉',
+  '💰','🛒','📦','🚚','💻','📱','⭐','💯',
+];
+
 interface Props {
   onSendText:  (message: string) => void;
   onSendFile:  (file: File | Blob, filename?: string) => void;
@@ -15,12 +21,24 @@ export default function MessageInput({ onSendText, onSendFile, disabled, placeho
   const [text, setText]                   = useState('');
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [showVoice, setShowVoice]         = useState(false);
+  const [showEmoji, setShowEmoji]         = useState(false);
   const [preview, setPreview]             = useState<{ url: string; file: File } | null>(null);
 
   const textareaRef  = useRef<HTMLTextAreaElement>(null);
   const fileRef      = useRef<HTMLInputElement>(null);
   const cameraRef    = useRef<HTMLInputElement>(null);
   const docRef       = useRef<HTMLInputElement>(null);
+
+  const insertEmoji = (emoji: string) => {
+    const el    = textareaRef.current;
+    const start = el?.selectionStart ?? text.length;
+    const end   = el?.selectionEnd   ?? text.length;
+    const next  = text.slice(0, start) + emoji + text.slice(end);
+    setText(next);
+    setTimeout(() => {
+      if (el) { el.selectionStart = el.selectionEnd = start + emoji.length; el.focus(); }
+    }, 0);
+  };
 
   // ── Envoi texte ─────────────────────────────────────────────────────────────
   const handleSend = () => {
@@ -105,6 +123,23 @@ export default function MessageInput({ onSendText, onSendFile, disabled, placeho
 
   return (
     <div className="relative">
+      {/* Picker emoji */}
+      {showEmoji && (
+        <div className="absolute bottom-full left-0 right-0 bg-white border-t border-gray-200 px-3 py-3 shadow-lg animate-slide-up">
+          <div className="grid grid-cols-8 gap-1">
+            {EMOJIS.map((e) => (
+              <button
+                key={e}
+                onClick={() => insertEmoji(e)}
+                className="text-xl h-9 w-full flex items-center justify-center rounded-lg hover:bg-gray-100 active:scale-90 transition-all"
+              >
+                {e}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Menu pièces jointes */}
       {showAttachMenu && (
         <div className="absolute bottom-full left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 flex justify-around shadow-lg animate-slide-up">
@@ -170,8 +205,10 @@ export default function MessageInput({ onSendText, onSendFile, disabled, placeho
 
         {/* Emoji */}
         <button
-          className="flex-shrink-0 w-9 h-9 flex items-center justify-center text-gray-500 hover:text-neo transition-colors mb-0.5"
-          tabIndex={-1}
+          onClick={() => { setShowEmoji((v) => !v); setShowAttachMenu(false); }}
+          className={`flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-full transition-colors mb-0.5 ${
+            showEmoji ? 'bg-neo text-white' : 'text-gray-500 hover:text-neo'
+          }`}
         >
           <Smile size={20} />
         </button>
@@ -184,7 +221,7 @@ export default function MessageInput({ onSendText, onSendFile, disabled, placeho
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
             onInput={handleInput}
-            onClick={() => setShowAttachMenu(false)}
+            onClick={() => { setShowAttachMenu(false); setShowEmoji(false); }}
             placeholder={placeholder ?? 'Écrire un message…'}
             rows={1}
             className="w-full resize-none text-sm text-gray-800 placeholder-gray-400 outline-none bg-transparent leading-relaxed max-h-[120px]"

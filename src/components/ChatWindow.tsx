@@ -318,7 +318,12 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
         onOpenCatalog={handleOpenCatalog}
       />
 
-      {product && <ProductCard product={product} />}
+      {product && (
+        <ProductCard
+          product={product}
+          onOrder={(msg) => handleSend(msg)}
+        />
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1 chat-bg">
