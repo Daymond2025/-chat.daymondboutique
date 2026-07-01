@@ -4,10 +4,13 @@ import { useRef, useState, KeyboardEvent } from 'react';
 import { Send, Mic, Paperclip, Camera, FileText, X, Smile } from 'lucide-react';
 import VoiceRecorder from './VoiceRecorder';
 
-const EMOJIS = [
-  '😊','😂','🥰','😍','😎','🤔','😉','🙏',
-  '👍','👏','💪','🤝','❤️','🔥','✅','🎉',
-  '💰','🛒','📦','🚚','💻','📱','⭐','💯',
+const EMOJI_CATEGORIES = [
+  { label: '😊', emojis: ['😀','😁','😂','🤣','😊','😍','🥰','😘','😎','🤩','🥺','😅','😭','😤','🤔','😴','🤯','😇','🤗','😬','😏','😒','🙄','😡','🤬','😱','😨','🤫','🤭','😶'] },
+  { label: '👍', emojis: ['👍','👎','👋','🤝','🙏','👏','💪','✌️','🤜','🤛','🫶','☝️','🤞','🤟','🤙','💅','🫵','👊','✊','🫱'] },
+  { label: '❤️', emojis: ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💕','💖','💗','💓','💞','💘','❣️','💔','💝','♥️','🫀'] },
+  { label: '🎉', emojis: ['🎉','🎊','🎁','🎂','🎈','🏆','🥇','⭐','🌟','✨','🔥','💫','🎯','🎶','🎵','🎤','🎸','🎮','🎲','🎀'] },
+  { label: '💰', emojis: ['💰','💸','💵','💳','🛒','📦','🚚','🏪','🛍️','💻','📱','🖥️','⌨️','🖨️','📧','📞','☎️','✅','❌','💯'] },
+  { label: '🌸', emojis: ['🌸','🌺','🌻','🌹','🍀','🌈','☀️','🌙','⭐','🌊','🦁','🐯','🐶','🦋','🌴','🍎','🍊','🍋','🍇','🍓'] },
 ];
 
 interface Props {
@@ -22,6 +25,7 @@ export default function MessageInput({ onSendText, onSendFile, disabled, placeho
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [showVoice, setShowVoice]         = useState(false);
   const [showEmoji, setShowEmoji]         = useState(false);
+  const [emojiTab, setEmojiTab]           = useState(0);
   const [preview, setPreview]             = useState<{ url: string; file: File } | null>(null);
 
   const textareaRef  = useRef<HTMLTextAreaElement>(null);
@@ -123,15 +127,30 @@ export default function MessageInput({ onSendText, onSendFile, disabled, placeho
 
   return (
     <div className="relative">
-      {/* Picker emoji */}
+      {/* Picker emoji avec catégories */}
       {showEmoji && (
-        <div className="absolute bottom-full left-0 right-0 bg-white border-t border-gray-200 px-3 py-3 shadow-lg animate-slide-up">
-          <div className="grid grid-cols-8 gap-1">
-            {EMOJIS.map((e) => (
+        <div className="absolute bottom-full left-0 right-0 bg-white border-t border-gray-200 shadow-lg animate-slide-up">
+          {/* Onglets catégories */}
+          <div className="flex border-b border-gray-100 px-2 pt-1">
+            {EMOJI_CATEGORIES.map((cat, i) => (
+              <button
+                key={i}
+                onClick={() => setEmojiTab(i)}
+                className={`flex-1 text-lg py-1.5 rounded-t-lg transition-colors ${
+                  emojiTab === i ? 'bg-gray-100' : 'hover:bg-gray-50'
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+          {/* Grille emojis */}
+          <div className="grid grid-cols-8 gap-0.5 px-2 py-2 max-h-36 overflow-y-auto">
+            {EMOJI_CATEGORIES[emojiTab].emojis.map((e) => (
               <button
                 key={e}
                 onClick={() => insertEmoji(e)}
-                className="text-xl h-9 w-full flex items-center justify-center rounded-lg hover:bg-gray-100 active:scale-90 transition-all"
+                className="text-xl h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 active:scale-90 transition-all"
               >
                 {e}
               </button>

@@ -39,13 +39,25 @@ function formatText(text: string) {
   });
 }
 
+function guessTypeFromName(name?: string): 'image' | 'audio' | null {
+  if (!name) return null;
+  const ext = name.split('.').pop()?.toLowerCase() ?? '';
+  if (['jpg','jpeg','png','gif','webp','bmp','svg'].includes(ext)) return 'image';
+  if (['mp3','ogg','webm','wav','aac','m4a','opus'].includes(ext))  return 'audio';
+  return null;
+}
+
 function MessageContent({ message, isInbound }: { message: Message; isInbound: boolean }) {
   const { isMedia, media, text } = parseContent(message.content);
 
   if (isMedia && media) {
     const src = resolveUrl(media.url);
+    // Fallback : si le type stocké est 'file' mais que le nom de fichier dit image/audio
+    const effectiveType = (message.type === 'file' || !message.type)
+      ? (guessTypeFromName(media.name) ?? message.type)
+      : message.type;
 
-    if (message.type === 'image') {
+    if (effectiveType === 'image') {
       return (
         <img
           src={src}
@@ -56,7 +68,7 @@ function MessageContent({ message, isInbound }: { message: Message; isInbound: b
       );
     }
 
-    if (message.type === 'audio') {
+    if (effectiveType === 'audio') {
       return (
         <div className="flex flex-col gap-1">
           <audio controls src={src} className="h-10 w-full min-w-[200px]" />

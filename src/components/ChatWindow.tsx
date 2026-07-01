@@ -318,15 +318,18 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
         onOpenCatalog={handleOpenCatalog}
       />
 
-      {product && (
-        <ProductCard
-          product={product}
-          onOrder={(msg) => handleSend(msg)}
-        />
-      )}
-
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1 chat-bg">
+        {/* Carte produit flottante en premier dans le chat (comme WhatsApp) */}
+        {product && (
+          <div className="flex justify-center mb-2">
+            <ProductCard
+              product={product}
+              onOrder={(msg) => handleSend(msg)}
+            />
+          </div>
+        )}
+
         {messages.map((msg: Message, idx: number) => {
           const prev       = messages[idx - 1];
           const showDate   = !prev || !isSameDay(new Date(msg.created_at), new Date(prev.created_at));

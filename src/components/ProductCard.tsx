@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ShoppingBag, Tag } from 'lucide-react';
+import { ShoppingBag } from 'lucide-react';
 import type { Product } from '@/lib/types';
 import ProductDetailSheet from './ProductDetailSheet';
 
@@ -18,15 +18,14 @@ export default function ProductCard({ product, onOrder }: Props) {
 
   return (
     <>
-      {/* Carte compacte style WhatsApp */}
+      {/* Card bubble flottante — style WhatsApp "produit partagé" */}
       <button
         onClick={() => setShowDetail(true)}
-        className="w-full bg-white border-b border-gray-200 shadow-sm hover:bg-gray-50 active:bg-gray-100 transition-colors text-left"
+        className="w-[88%] bg-white rounded-2xl shadow-md overflow-hidden text-left active:scale-[0.98] transition-transform border border-gray-100"
       >
-        <div className="flex items-center gap-3 px-4 py-3">
-
-          {/* Miniature produit */}
-          <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 border border-gray-200 bg-gray-100 relative">
+        <div className="flex items-stretch">
+          {/* Image carrée à gauche */}
+          <div className="w-24 h-24 flex-shrink-0 bg-gray-100 relative">
             {product.image_url ? (
               <img
                 src={product.image_url}
@@ -35,37 +34,37 @@ export default function ProductCard({ product, onOrder }: Props) {
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
-                <ShoppingBag size={20} className="text-gray-300" />
+                <ShoppingBag size={24} className="text-gray-300" />
               </div>
             )}
             {hasPromo && (
-              <span className="absolute top-0.5 right-0.5 bg-red-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-full leading-none">
+              <span className="absolute top-1 left-1 bg-red-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full leading-none">
                 PROMO
               </span>
             )}
           </div>
 
-          {/* Infos */}
-          <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-semibold text-gray-900 truncate leading-snug">
+          {/* Infos à droite */}
+          <div className="flex-1 px-3 py-2.5 min-w-0 flex flex-col justify-center">
+            <p className="text-[13px] font-semibold text-gray-900 line-clamp-2 leading-snug">
               {product.name}
             </p>
             {product.brand && (
-              <p className="text-[11px] text-gray-400 truncate">{product.brand}</p>
+              <p className="text-[11px] text-gray-400 mt-0.5 truncate">{product.brand}</p>
             )}
-            <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-[13px] font-bold text-neo">{displayPrice}</span>
+            <div className="mt-1.5 flex items-center gap-2">
+              <span className="text-[15px] font-extrabold text-gray-900">{displayPrice}</span>
               {hasPromo && (
                 <span className="text-[11px] text-gray-400 line-through">{product.price}</span>
               )}
             </div>
           </div>
+        </div>
 
-          {/* Indicateur tap */}
-          <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
-            <Tag size={13} className="text-neo opacity-60" />
-            <span className="text-[10px] text-gray-400">Détails</span>
-          </div>
+        {/* Pied de carte */}
+        <div className="border-t border-gray-100 px-3 py-1.5 flex items-center justify-between">
+          <span className="text-[11px] text-gray-400">Appuyez pour voir les détails</span>
+          <span className="text-[11px] text-neo font-semibold">Voir ›</span>
         </div>
       </button>
 
