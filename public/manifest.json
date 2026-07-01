@@ -1,25 +1,25 @@
 {
-  "name": "Daymond — Commandez en direct",
-  "short_name": "Daymond Chat",
-  "description": "Discutez avec un agent Daymond pour trouver et commander votre ordinateur idéal.",
+  "name": "WhatsApp Shop",
+  "short_name": "WA Shop",
+  "description": "Commandez facilement vos produits via WhatsApp Shop.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#e5ddd5",
-  "theme_color": "#2d5a3d",
+  "theme_color": "#25d366",
   "orientation": "portrait-primary",
   "lang": "fr",
   "categories": ["shopping", "business"],
   "icons": [
     {
-      "src": "/icons/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/icons/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/icons/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "maskable"
     }
   ],

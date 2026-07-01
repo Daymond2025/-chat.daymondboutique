@@ -3,22 +3,22 @@ import './globals.css';
 import ServiceWorkerRegistrar from '@/components/ServiceWorkerRegistrar';
 
 export const metadata: Metadata = {
-  title: 'Daymond — Commandez en direct',
-  description: 'Discutez avec un agent Daymond pour trouver votre ordinateur idéal.',
+  title: 'WhatsApp Shop',
+  description: 'Commandez facilement vos produits via WhatsApp Shop.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'Daymond Chat',
+    title: 'WhatsApp Shop',
   },
   icons: {
-    icon:  '/icons/icon.svg',
-    apple: '/icons/icon.svg',
+    icon:  '/icons/icon.png',
+    apple: '/icons/icon.png',
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: '#2d5a3d',
+  themeColor: '#25d366',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,

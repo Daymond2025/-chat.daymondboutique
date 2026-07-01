@@ -1,8 +1,39 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Phone, Store, MoreVertical } from 'lucide-react';
+import { ArrowLeft, Phone, MoreVertical } from 'lucide-react';
 import type { Agent } from '@/lib/types';
+
+function ShopIcon({ size = 19, className = '' }: { size?: number; className?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      {/* Toit / barre du haut */}
+      <line x1="2" y1="5" x2="22" y2="5" />
+      {/* Auvent festonné (3 arches) */}
+      <path d="M2 5 Q4 9.5 6.5 5 Q9 9.5 11.5 5 Q14 9.5 16.5 5 Q19 9.5 22 5" />
+      {/* Mur gauche */}
+      <line x1="2" y1="9.5" x2="2" y2="22" />
+      {/* Mur droit */}
+      <line x1="22" y1="9.5" x2="22" y2="22" />
+      {/* Sol */}
+      <line x1="2" y1="22" x2="22" y2="22" />
+      {/* Vitrine gauche */}
+      <rect x="3.5" y="13" width="8.5" height="5.5" rx="1" />
+      {/* Porte droite */}
+      <path d="M14.5 22 V14 Q14.5 13 15.5 13 H20.5 Q21.5 13 21.5 14 V22" />
+    </svg>
+  );
+}
 
 interface Props {
   agent:          Agent;
@@ -65,7 +96,7 @@ export default function AgentHeader({ agent, isOnline, aiActive, productImage, o
           className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
           title="Voir le catalogue"
         >
-          <Store size={19} className="text-gray-600" />
+          <ShopIcon size={19} className="text-gray-600" />
         </button>
 
         <a

@@ -44,10 +44,14 @@ export default function ConversationListPage() {
     <div className="h-dvh flex flex-col bg-white">
 
       {/* Header style WhatsApp blanc */}
-      <header className="bg-white px-4 pt-10 pb-3 flex items-center justify-between border-b border-gray-100 shadow-sm">
+      <header className="bg-white px-4 pt-4 pb-3 flex items-center justify-between border-b border-gray-100 shadow-sm">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-neo">Daymond</h1>
-          <p className="text-xs text-gray-500">Agent Commercial</p>
+          <h1
+            className="text-xl font-bold tracking-tight"
+            style={{ color: '#25d366', fontFamily: 'Helvetica, "Helvetica Neue", Arial, sans-serif' }}
+          >
+            WhatsApp Shop
+          </h1>
         </div>
         <div className="flex items-center gap-1">
           <button className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors">
