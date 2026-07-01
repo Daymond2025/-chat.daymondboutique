@@ -1,165 +1,211 @@
 'use client';
 
-import { useState } from 'react';
-import { X, User, Phone, MapPin, Calendar } from 'lucide-react';
-
-interface FormData {
-  name:     string;
-  phone:    string;
-  address:  string;
-  city:     string;
-  datetime: string;
-}
+import { useState, useRef, useEffect } from 'react';
+import { ChevronRight, X } from 'lucide-react';
 
 interface Props {
-  onSubmit: (message: string) => void;
-  onClose:  () => void;
+  onSubmit:    (message: string) => void;
+  onClose:     () => void;
+  agentName:   string;
+  agentAvatar: string | null;
 }
 
-const CITIES = ['Abidjan', 'Bouaké', 'San-Pédro', 'Yamoussoukro', 'Korhogo', 'Daloa', 'Man'];
-
-const DELIVERY_TIMES = [
-  "Aujourd'hui, dans l'immédiat",
-  "Aujourd'hui dans l'après-midi",
-  'Demain matin',
-  'Demain après-midi',
-  'Dans 2 à 3 jours',
-  'Je vous préciserai plus tard',
+const CITIES = [
+  'Abidjan', 'Bouaké', 'San-Pédro', 'Yamoussoukro',
+  'Korhogo', 'Daloa', 'Man', 'Autre',
 ];
 
-export default function CustomerInfoModal({ onSubmit, onClose }: Props) {
-  const [form, setForm] = useState<FormData>({
-    name: '', phone: '', address: '', city: 'Abidjan', datetime: DELIVERY_TIMES[0],
-  });
-  const [errors, setErrors] = useState<Partial<FormData>>({});
+const DELIVERY_TIMES = [
+  "Maintenant",
+  "Cet après-midi",
+  "Demain matin",
+  "Demain après-midi",
+  "Dans 2-3 jours",
+  "Me recontacter",
+];
 
-  function validate(): boolean {
-    const e: Partial<FormData> = {};
-    if (!form.name.trim())    e.name    = 'Champ requis';
-    if (!form.phone.trim())   e.phone   = 'Champ requis';
-    if (!form.address.trim()) e.address = 'Champ requis';
-    setErrors(e);
-    return Object.keys(e).length === 0;
+interface Step {
+  question:    string;
+  placeholder: string;
+  type:        'text' | 'tel' | 'chips';
+  options?:    string[];
+  field:       'address' | 'name' | 'phone' | 'city' | 'datetime';
+}
+
+const STEPS: Step[] = [
+  {
+    question:    'On vous livre où aujourd\'hui ?',
+    placeholder: 'Votre adresse de livraison',
+    type:        'text',
+    field:       'address',
+  },
+  {
+    question:    'Comment vous appelez-vous ?',
+    placeholder: 'Votre nom complet',
+    type:        'text',
+    field:       'name',
+  },
+  {
+    question:    'Votre numéro WhatsApp ?',
+    placeholder: 'Ex : 07 00 00 00 00',
+    type:        'tel',
+    field:       'phone',
+  },
+  {
+    question:    'Dans quelle ville ?',
+    placeholder: '',
+    type:        'chips',
+    options:     CITIES,
+    field:       'city',
+  },
+  {
+    question:    'Quand souhaitez-vous être livré ?',
+    placeholder: '',
+    type:        'chips',
+    options:     DELIVERY_TIMES,
+    field:       'datetime',
+  },
+];
+
+type FormData = Record<string, string>;
+
+export default function CustomerInfoModal({ onSubmit, onClose, agentName, agentAvatar }: Props) {
+  const [step,    setStep]    = useState(0);
+  const [value,   setValue]   = useState('');
+  const [form,    setForm]    = useState<FormData>({});
+  const [error,   setError]   = useState('');
+  const [leaving, setLeaving] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const current = STEPS[step];
+  const initials = agentName.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+
+  useEffect(() => {
+    if (current.type !== 'chips') {
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, [step, current.type]);
+
+  function advance(val: string) {
+    const trimmed = val.trim();
+    if (!trimmed) { setError('Ce champ est obligatoire'); return; }
+
+    const updated = { ...form, [current.field]: trimmed };
+    setForm(updated);
+    setError('');
+    setValue('');
+
+    if (step < STEPS.length - 1) {
+      setLeaving(true);
+      setTimeout(() => { setStep((s) => s + 1); setLeaving(false); }, 180);
+    } else {
+      // Dernier step — compiler et envoyer
+      const msg =
+        `Mon nom est ${updated.name}, mon numéro est le ${updated.phone}, ` +
+        `je veux être livré à ${updated.address}, ${updated.city}. ` +
+        `Créneau souhaité : ${updated.datetime}.`;
+      onSubmit(msg);
+    }
   }
 
-  function handleSubmit() {
-    if (!validate()) return;
-    const msg = `Mon nom est ${form.name.trim()}, mon numéro est le ${form.phone.trim()}, mon adresse de livraison est ${form.address.trim()} à ${form.city}, et je souhaite être livré : ${form.datetime}.`;
-    onSubmit(msg);
-    onClose();
+  function handleKey(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') advance(value);
   }
-
-  const set = (field: keyof FormData) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setForm(prev => ({ ...prev, [field]: e.target.value }));
-    if (errors[field]) setErrors(prev => ({ ...prev, [field]: undefined }));
-  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center">
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+      {/* Overlay flou */}
+      <div
+        className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+        onClick={onClose}
+      />
 
-      {/* Panel */}
-      <div className="relative w-full max-w-md bg-white rounded-t-3xl shadow-2xl animate-slide-up">
+      {/* Card */}
+      <div className="relative w-full max-w-sm animate-scale-in">
 
-        {/* Header */}
-        <div className="bg-neo-header px-5 py-4 rounded-t-3xl flex items-center justify-between">
-          <div>
-            <p className="text-white font-bold text-base">Vos informations de livraison</p>
-            <p className="text-neo-light text-xs mt-0.5">Remplissez les champs ci-dessous</p>
-          </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-            <X size={16} className="text-white" />
-          </button>
+        {/* Avatar agent — flottant au-dessus de la card */}
+        <div className="flex justify-center mb-[-36px] relative z-10">
+          {agentAvatar ? (
+            <img
+              src={agentAvatar}
+              alt={agentName}
+              className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-lg"
+            />
+          ) : (
+            <div className="w-20 h-20 rounded-full bg-neo flex items-center justify-center border-4 border-white shadow-lg">
+              <span className="text-white text-2xl font-bold">{initials}</span>
+            </div>
+          )}
         </div>
 
-        {/* Form */}
-        <div className="px-5 py-5 space-y-4">
+        {/* Contenu */}
+        <div className="bg-white rounded-3xl shadow-2xl pt-14 pb-6 px-6 relative">
 
-          {/* Nom */}
-          <div>
-            <label className="text-xs font-semibold text-gray-600 flex items-center gap-1.5 mb-1.5">
-              <User size={13} /> Nom complet
-            </label>
-            <input
-              type="text"
-              placeholder="Ex : Koffi Jean-Baptiste"
-              value={form.name}
-              onChange={set('name')}
-              className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-neo transition
-                ${errors.name ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50'}`}
-            />
-            {errors.name && <p className="text-red-500 text-[11px] mt-1">{errors.name}</p>}
-          </div>
-
-          {/* Téléphone */}
-          <div>
-            <label className="text-xs font-semibold text-gray-600 flex items-center gap-1.5 mb-1.5">
-              <Phone size={13} /> Numéro de téléphone
-            </label>
-            <input
-              type="tel"
-              placeholder="Ex : +225 07 00 00 00 00"
-              value={form.phone}
-              onChange={set('phone')}
-              className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-neo transition
-                ${errors.phone ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50'}`}
-            />
-            {errors.phone && <p className="text-red-500 text-[11px] mt-1">{errors.phone}</p>}
-          </div>
-
-          {/* Adresse */}
-          <div>
-            <label className="text-xs font-semibold text-gray-600 flex items-center gap-1.5 mb-1.5">
-              <MapPin size={13} /> Adresse de livraison
-            </label>
-            <input
-              type="text"
-              placeholder="Ex : Cocody, Rue des Jardins, face Total"
-              value={form.address}
-              onChange={set('address')}
-              className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-neo transition
-                ${errors.address ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50'}`}
-            />
-            {errors.address && <p className="text-red-500 text-[11px] mt-1">{errors.address}</p>}
-          </div>
-
-          {/* Ville */}
-          <div>
-            <label className="text-xs font-semibold text-gray-600 flex items-center gap-1.5 mb-1.5">
-              <MapPin size={13} /> Ville
-            </label>
-            <select
-              value={form.city}
-              onChange={set('city')}
-              className="w-full border border-gray-200 bg-gray-50 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-neo transition"
-            >
-              {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
-              <option value="Autre">Autre ville</option>
-            </select>
-          </div>
-
-          {/* Date de livraison */}
-          <div>
-            <label className="text-xs font-semibold text-gray-600 flex items-center gap-1.5 mb-1.5">
-              <Calendar size={13} /> Date et heure de livraison
-            </label>
-            <select
-              value={form.datetime}
-              onChange={set('datetime')}
-              className="w-full border border-gray-200 bg-gray-50 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-neo transition"
-            >
-              {DELIVERY_TIMES.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-          </div>
-
-          {/* Submit */}
+          {/* Bouton fermer */}
           <button
-            onClick={handleSubmit}
-            className="w-full bg-neo text-white font-bold py-3.5 rounded-2xl shadow-md hover:bg-neo-dark active:scale-95 transition-all mt-2 uppercase tracking-wide text-sm"
+            onClick={onClose}
+            className="absolute top-4 right-4 w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:bg-gray-200 transition-colors"
           >
-            Confirmer mes informations
+            <X size={14} />
           </button>
+
+          {/* Indicateur de progression */}
+          <div className="flex justify-center gap-1.5 mb-5">
+            {STEPS.map((_, i) => (
+              <div
+                key={i}
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  i === step ? 'w-6 bg-neo' : i < step ? 'w-3 bg-neo/40' : 'w-3 bg-gray-200'
+                }`}
+              />
+            ))}
+          </div>
+
+          {/* Question */}
+          <p className={`text-center text-[17px] font-bold text-gray-800 mb-5 leading-snug transition-opacity duration-180 ${leaving ? 'opacity-0' : 'opacity-100'}`}>
+            {current.question}
+          </p>
+
+          {/* Chips (ville / créneau) */}
+          {current.type === 'chips' && current.options && (
+            <div className="flex flex-wrap gap-2 justify-center">
+              {current.options.map((opt) => (
+                <button
+                  key={opt}
+                  onClick={() => advance(opt)}
+                  className="px-4 py-2 rounded-full border border-neo text-neo text-sm font-medium hover:bg-neo hover:text-white active:scale-95 transition-all"
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Input texte / tel */}
+          {current.type !== 'chips' && (
+            <div className={`flex items-center gap-2 transition-opacity duration-180 ${leaving ? 'opacity-0' : 'opacity-100'}`}>
+              <input
+                ref={inputRef}
+                type={current.type}
+                inputMode={current.type === 'tel' ? 'tel' : 'text'}
+                placeholder={current.placeholder}
+                value={value}
+                onChange={(e) => { setValue(e.target.value); setError(''); }}
+                onKeyDown={handleKey}
+                className="flex-1 border-2 border-neo rounded-2xl px-4 py-3 text-sm outline-none placeholder-gray-300 text-gray-800 focus:border-neo transition-colors"
+              />
+              <button
+                onClick={() => advance(value)}
+                className="w-11 h-11 rounded-full bg-neo flex items-center justify-center shadow-md hover:bg-neo-dark active:scale-95 transition-all flex-shrink-0"
+              >
+                <ChevronRight size={20} className="text-white" />
+              </button>
+            </div>
+          )}
+
+          {error && (
+            <p className="text-red-500 text-xs text-center mt-2">{error}</p>
+          )}
         </div>
       </div>
     </div>

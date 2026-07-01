@@ -441,6 +441,8 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
         <CustomerInfoModal
           onSubmit={(msg) => { setShowInfoForm(false); handleSend(msg); }}
           onClose={() => setShowInfoForm(false)}
+          agentName={displayAgent.name}
+          agentAvatar={displayAgent.avatar_url}
         />
       )}
     </div>
