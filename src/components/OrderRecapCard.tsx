@@ -25,8 +25,6 @@ export default function OrderRecapCard({ recap, isConfirmed, onConfirm, onModify
   const priceRows = [
     { label: 'Prix du produit',    value: recap.price },
     { label: 'Frais de livraison', value: fmtNum(recap.delivery_fee, recap.currency) },
-    { label: 'TVA',                value: fmtNum(recap.tva, recap.currency) },
-    { label: 'Remise',             value: fmtNum(recap.remise, recap.currency) },
   ];
 
   return (

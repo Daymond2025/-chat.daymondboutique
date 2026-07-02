@@ -4,6 +4,14 @@ const config: Config = {
   content: ['./src/**/*.{js,ts,jsx,tsx,mdx}'],
   theme: {
     extend: {
+      fontFamily: {
+        // WhatsApp n'utilise pas de police custom : c'est la police système de l'OS
+        // (San Francisco sur iOS/macOS, Segoe UI sur Windows/WhatsApp Web, Roboto sur Android).
+        sans: [
+          '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto',
+          'Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif',
+        ],
+      },
       colors: {
         neo: {
           DEFAULT:  'oklch(.67 .22 144.33)',

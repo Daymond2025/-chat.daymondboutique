@@ -123,7 +123,7 @@ function MessageContent({ message, isInbound }: { message: Message; isInbound: b
   }
 
   return (
-    <p className={`text-sm leading-relaxed ${isInbound ? 'text-neo-darker' : 'text-gray-800'}`}>
+    <p className={`text-[14.2px] leading-[19px] ${isInbound ? 'text-neo-darker' : 'text-gray-800'}`}>
       {formatText(text ?? '')}
     </p>
   );
@@ -157,7 +157,7 @@ export default function MessageBubble({ message, agentName, agentAvatar, showAva
           )}
           <div className="bg-white rounded-2xl rounded-tl-sm px-3 py-2 shadow-sm max-w-full">
             <MessageContent message={message} isInbound={false} />
-            <span className="text-[10px] text-gray-400 mt-1 block text-right">{time}</span>
+            <span className="text-[11px] text-gray-400 mt-1 block text-right">{time}</span>
           </div>
         </div>
       </div>
@@ -170,7 +170,7 @@ export default function MessageBubble({ message, agentName, agentAvatar, showAva
       <div className="bg-neo-bg border border-neo-border rounded-2xl rounded-tr-sm px-3 py-2 shadow-sm">
         <MessageContent message={message} isInbound={true} />
         <div className="flex items-center justify-end gap-1 mt-1">
-          <span className="text-[10px] text-neo-dark opacity-60">{time}</span>
+          <span className="text-[11px] text-neo-dark opacity-60">{time}</span>
           {message.status === 'delivered' || message.status === 'read' ? (
             <CheckCheck size={12} className="text-neo-dark opacity-60" />
           ) : (
