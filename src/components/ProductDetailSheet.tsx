@@ -1,8 +1,8 @@
 'use client';
 
-import { useRef, useState } from 'react';
 import { X, MessageCircle, ShoppingBag, Tag } from 'lucide-react';
 import type { Product } from '@/lib/types';
+import MiniGallery from './MiniGallery';
 
 interface Props {
   product: Product;
@@ -11,18 +11,7 @@ interface Props {
 }
 
 export default function ProductDetailSheet({ product, onOrder, onClose }: Props) {
-  const [brokenIdx, setBrokenIdx] = useState<Set<number>>(new Set());
-  const [activeIdx, setActiveIdx] = useState(0);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  const images = (product.images?.length ? product.images : (product.image_url ? [product.image_url] : []))
-    .filter((_, i) => !brokenIdx.has(i));
-
-  function onGalleryScroll() {
-    const el = scrollRef.current;
-    if (!el) return;
-    setActiveIdx(Math.round(el.scrollLeft / el.clientWidth));
-  }
+  const images = product.images?.length ? product.images : (product.image_url ? [product.image_url] : []);
 
   const displayPrice = product.sale_price ?? product.price;
   const hasPromo     = product.sale_price !== null;
@@ -56,35 +45,10 @@ export default function ProductDetailSheet({ product, onOrder, onClose }: Props)
           {/* Galerie d'images */}
           <div className="w-full bg-gray-100 relative" style={{ aspectRatio: '4/3' }}>
             {images.length > 0 ? (
-              <div
-                ref={scrollRef}
-                onScroll={onGalleryScroll}
-                className="w-full h-full flex overflow-x-auto snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden"
-              >
-                {images.map((src, i) => (
-                  <img
-                    key={src + i}
-                    src={src}
-                    alt={product.name}
-                    className="w-full h-full object-cover shrink-0 snap-center"
-                    onError={() => setBrokenIdx((s) => new Set(s).add(i))}
-                  />
-                ))}
-              </div>
+              <MiniGallery images={images} alt={product.name} dotSize="w-1.5 h-1.5" />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
                 <ShoppingBag size={48} className="text-gray-300" />
-              </div>
-            )}
-
-            {images.length > 1 && (
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-                {images.map((_, i) => (
-                  <span
-                    key={i}
-                    className={`w-1.5 h-1.5 rounded-full transition-colors ${i === activeIdx ? 'bg-white' : 'bg-white/50'}`}
-                  />
-                ))}
               </div>
             )}
 

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ShoppingBag } from 'lucide-react';
 import type { Product, ProductSuggestion } from '@/lib/types';
 import ProductDetailSheet from './ProductDetailSheet';
+import MiniGallery from './MiniGallery';
 
 interface Props {
   suggestions: ProductSuggestion[];
@@ -42,6 +43,7 @@ export default function ProductSuggestions({ suggestions, onOrder }: Props) {
         {suggestions.map((p) => {
           const displayPrice = p.sale_price ?? p.price;
           const hasPromo     = p.sale_price !== null;
+          const images       = p.images?.length ? p.images : (p.image_url ? [p.image_url] : []);
 
           return (
             <button
@@ -49,15 +51,10 @@ export default function ProductSuggestions({ suggestions, onOrder }: Props) {
               onClick={() => setDetail(p)}
               className="flex-shrink-0 w-36 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col text-left active:scale-[0.97] transition-transform"
             >
-              {/* Image produit */}
+              {/* Image(s) produit */}
               <div className="w-full h-24 bg-gray-50 flex-shrink-0 relative">
-                {p.image_url ? (
-                  <img
-                    src={p.image_url}
-                    alt={p.name}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
+                {images.length > 0 ? (
+                  <MiniGallery images={images} alt={p.name} />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <ShoppingBag size={28} className="text-gray-300" />
@@ -66,11 +63,6 @@ export default function ProductSuggestions({ suggestions, onOrder }: Props) {
                 {hasPromo && (
                   <span className="absolute top-1.5 right-1.5 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
                     PROMO
-                  </span>
-                )}
-                {(p.images?.length ?? 0) > 1 && (
-                  <span className="absolute bottom-1.5 right-1.5 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded-full">
-                    +{(p.images!.length) - 1}
                   </span>
                 )}
               </div>

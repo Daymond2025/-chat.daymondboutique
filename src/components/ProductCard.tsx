@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ShoppingBag } from 'lucide-react';
 import type { Product } from '@/lib/types';
 import ProductDetailSheet from './ProductDetailSheet';
+import MiniGallery from './MiniGallery';
 
 interface Props {
   product: Product;
@@ -15,6 +16,7 @@ export default function ProductCard({ product, onOrder }: Props) {
 
   const displayPrice = product.sale_price ?? product.price;
   const hasPromo     = product.sale_price !== null;
+  const images       = product.images?.length ? product.images : (product.image_url ? [product.image_url] : []);
 
   return (
     <>
@@ -24,14 +26,10 @@ export default function ProductCard({ product, onOrder }: Props) {
         className="w-[88%] bg-white rounded-2xl shadow-md overflow-hidden text-left active:scale-[0.98] transition-transform border border-gray-100"
       >
         <div className="flex items-stretch">
-          {/* Image carrée à gauche */}
+          {/* Image(s) carrée à gauche */}
           <div className="w-24 h-24 flex-shrink-0 bg-gray-100 relative">
-            {product.image_url ? (
-              <img
-                src={product.image_url}
-                alt={product.name}
-                className="w-full h-full object-cover"
-              />
+            {images.length > 0 ? (
+              <MiniGallery images={images} alt={product.name} />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
                 <ShoppingBag size={24} className="text-gray-300" />
