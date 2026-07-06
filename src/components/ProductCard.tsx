@@ -29,7 +29,7 @@ export default function ProductCard({ product, onOrder }: Props) {
           {/* Image(s) carrée à gauche */}
           <div className="w-24 h-24 flex-shrink-0 bg-gray-100 relative">
             {images.length > 0 ? (
-              <MiniGallery images={images} alt={product.name} />
+              <MiniGallery images={images} alt={product.name} arrows={false} />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
                 <ShoppingBag size={24} className="text-gray-300" />
