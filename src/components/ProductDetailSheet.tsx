@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { X, MessageCircle, ShoppingBag, Tag } from 'lucide-react';
 import type { Product } from '@/lib/types';
 
@@ -11,7 +11,18 @@ interface Props {
 }
 
 export default function ProductDetailSheet({ product, onOrder, onClose }: Props) {
-  const [imgError, setImgError] = useState(false);
+  const [brokenIdx, setBrokenIdx] = useState<Set<number>>(new Set());
+  const [activeIdx, setActiveIdx] = useState(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const images = (product.images?.length ? product.images : (product.image_url ? [product.image_url] : []))
+    .filter((_, i) => !brokenIdx.has(i));
+
+  function onGalleryScroll() {
+    const el = scrollRef.current;
+    if (!el) return;
+    setActiveIdx(Math.round(el.scrollLeft / el.clientWidth));
+  }
 
   const displayPrice = product.sale_price ?? product.price;
   const hasPromo     = product.sale_price !== null;
@@ -42,20 +53,41 @@ export default function ProductDetailSheet({ product, onOrder, onClose }: Props)
         {/* Contenu scrollable */}
         <div className="overflow-y-auto flex-1">
 
-          {/* Image principale */}
+          {/* Galerie d'images */}
           <div className="w-full bg-gray-100 relative" style={{ aspectRatio: '4/3' }}>
-            {product.image_url && !imgError ? (
-              <img
-                src={product.image_url}
-                alt={product.name}
-                className="w-full h-full object-cover"
-                onError={() => setImgError(true)}
-              />
+            {images.length > 0 ? (
+              <div
+                ref={scrollRef}
+                onScroll={onGalleryScroll}
+                className="w-full h-full flex overflow-x-auto snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden"
+              >
+                {images.map((src, i) => (
+                  <img
+                    key={src + i}
+                    src={src}
+                    alt={product.name}
+                    className="w-full h-full object-cover shrink-0 snap-center"
+                    onError={() => setBrokenIdx((s) => new Set(s).add(i))}
+                  />
+                ))}
+              </div>
             ) : (
               <div className="w-full h-full flex items-center justify-center">
                 <ShoppingBag size={48} className="text-gray-300" />
               </div>
             )}
+
+            {images.length > 1 && (
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                {images.map((_, i) => (
+                  <span
+                    key={i}
+                    className={`w-1.5 h-1.5 rounded-full transition-colors ${i === activeIdx ? 'bg-white' : 'bg-white/50'}`}
+                  />
+                ))}
+              </div>
+            )}
+
             {hasPromo && (
               <span className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
                 <Tag size={10} /> PROMO

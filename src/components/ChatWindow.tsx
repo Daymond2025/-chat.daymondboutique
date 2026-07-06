@@ -395,9 +395,9 @@ export default function ChatWindow({ slug, initialProduct, initialAgent }: Props
               {msg.product_suggestions && msg.product_suggestions.length > 0 && (
                 <ProductSuggestions
                   suggestions={msg.product_suggestions}
-                  onSelect={(name) => {
+                  onOrder={(orderMsg) => {
                     setQuickReplies([]);
-                    handleSend(`Je suis intéressé par le ${name}`);
+                    handleSend(orderMsg);
                   }}
                 />
               )}

@@ -1,14 +1,33 @@
 'use client';
 
+import { useState } from 'react';
 import { ShoppingBag } from 'lucide-react';
-import type { ProductSuggestion } from '@/lib/types';
+import type { Product, ProductSuggestion } from '@/lib/types';
+import ProductDetailSheet from './ProductDetailSheet';
 
 interface Props {
   suggestions: ProductSuggestion[];
-  onSelect:    (name: string) => void;
+  onOrder:     (msg: string) => void;
 }
 
-export default function ProductSuggestions({ suggestions, onSelect }: Props) {
+function toProduct(p: ProductSuggestion): Product {
+  return {
+    id: p.id,
+    name: p.name,
+    brand: p.brand,
+    description: p.description ?? '',
+    price: p.price,
+    sale_price: p.sale_price,
+    image_url: p.image_url,
+    images: p.images?.length ? p.images : (p.image_url ? [p.image_url] : []),
+    slug: p.slug,
+    specs: p.specs ?? null,
+  };
+}
+
+export default function ProductSuggestions({ suggestions, onOrder }: Props) {
+  const [detail, setDetail] = useState<ProductSuggestion | null>(null);
+
   if (!suggestions.length) return null;
 
   return (
@@ -25,9 +44,10 @@ export default function ProductSuggestions({ suggestions, onSelect }: Props) {
           const hasPromo     = p.sale_price !== null;
 
           return (
-            <div
+            <button
               key={p.id}
-              className="flex-shrink-0 w-36 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col"
+              onClick={() => setDetail(p)}
+              className="flex-shrink-0 w-36 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col text-left active:scale-[0.97] transition-transform"
             >
               {/* Image produit */}
               <div className="w-full h-24 bg-gray-50 flex-shrink-0 relative">
@@ -48,6 +68,11 @@ export default function ProductSuggestions({ suggestions, onSelect }: Props) {
                     PROMO
                   </span>
                 )}
+                {(p.images?.length ?? 0) > 1 && (
+                  <span className="absolute bottom-1.5 right-1.5 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded-full">
+                    +{(p.images!.length) - 1}
+                  </span>
+                )}
               </div>
 
               {/* Infos */}
@@ -65,17 +90,22 @@ export default function ProductSuggestions({ suggestions, onSelect }: Props) {
                   )}
                 </div>
 
-                <button
-                  onClick={() => onSelect(p.name)}
-                  className="mt-2 w-full bg-neo text-white text-[11px] font-bold py-1.5 rounded-xl hover:bg-neo-dark active:scale-95 transition-all"
-                >
-                  Commander
-                </button>
+                <span className="mt-2 w-full bg-neo-bg text-neo-dark text-center text-[11px] font-bold py-1.5 rounded-xl">
+                  Voir le produit
+                </span>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
+
+      {detail && (
+        <ProductDetailSheet
+          product={toProduct(detail)}
+          onOrder={(msg) => { setDetail(null); onOrder(msg); }}
+          onClose={() => setDetail(null)}
+        />
+      )}
     </div>
   );
 }

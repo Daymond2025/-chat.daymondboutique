@@ -6,6 +6,7 @@ export interface Product {
   price: string;
   sale_price: string | null;
   image_url: string | null;
+  images: string[];
   slug: string;
   specs: Record<string, string> | null;
 }
@@ -41,13 +42,16 @@ export interface OrderRecap {
 }
 
 export interface ProductSuggestion {
-  id:         number;
-  name:       string;
-  brand:      string;
-  price:      string;
-  sale_price: string | null;
-  image_url:  string | null;
-  slug:       string;
+  id:          number;
+  name:        string;
+  brand:       string;
+  description?: string | null;
+  price:       string;
+  sale_price:  string | null;
+  image_url:   string | null;
+  images?:     string[];
+  specs?:      Record<string, string> | null;
+  slug:        string;
 }
 
 export interface Message {
